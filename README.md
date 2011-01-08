@@ -3,8 +3,6 @@ JavaScript LRU Cache
 
 Just a simple LRU cache written in javascript. It is loosely based on ASP.NET's Cache, and includes many caching options such as absolute expiration, sliding expiration, cache priority, and a callback function. It can be used to cache data locally in the user's browser, saving a server roundtrip in AJAX heavy applications.
 
-Updated 1/20/2010: Thanks to Andrej Arn for some syntax updates.
-
 How It Works
 ------------
 
@@ -45,3 +43,10 @@ How It Works
 		
 		// clears all items from the cache
 		cache.clear();
+
+History
+-------
+
+1/8/2011: Migrated project to GitHub.
+1/20/2010: Thanks to Andrej Arn for some syntax updates.
+5/30/2008: First version.
