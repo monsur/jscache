@@ -1,6 +1,6 @@
 /*
 MIT LICENSE
-Copyright (c) 2007 Monsur Hossain (http://www.monsur.com)
+Copyright (c) 2007 Monsur Hossain (http://monsur.hossai.in)
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -213,13 +213,15 @@ Cache.prototype._removeItem = function(key) {
 Cache.prototype._isExpired = function(item) {
     var now = new Date().getTime();
     var expired = false;
-    if ((item.options.expirationAbsolute) && (item.options.expirationAbsolute < now)) {
+    if ((item.options.expirationAbsolute) &&
+        (item.options.expirationAbsolute < now)) {
         // if the absolute expiration has passed, expire the item
         expired = true;
     } 
     if (!expired && (item.options.expirationSliding)) {
         // if the sliding expiration has passed, expire the item
-        var lastAccess = item.lastAccessed + (item.options.expirationSliding * 1000);
+        var lastAccess =
+            item.lastAccessed + (item.options.expirationSliding * 1000);
         if (lastAccess < now) {
             expired = true;
         }
@@ -231,7 +233,8 @@ Cache.prototype.toHtmlString = function() {
     var returnStr = this.count + " item(s) in cache<br /><ul>";
     for (var key in this.items) {
         var item = this.items[key];
-        returnStr = returnStr + "<li>" + item.key.toString() + " = " + item.value.toString() + "</li>";
+        returnStr = returnStr + "<li>" + item.key.toString() + " = " +
+            item.value.toString() + "</li>";
     }
     returnStr = returnStr + "</ul>";
     return returnStr;
