@@ -1,0 +1,142 @@
+<html>
+  <head>
+    <title>JavaScript LRU Cache: Sample</title>
+    <script src="cache.js"></script>
+    <script>
+    var cachetest;
+
+    function exampleCreateCache() {
+      var size = document.getElementById("createSize").value;
+      cachetest = new Cache(size);
+      updateStatus("Created cache with size " + size);
+    }
+
+    function exampleAddItem() {
+      if (!isCacheInitialized()) {
+        updateStatus("Cache is not initialized");
+        return;
+      }
+
+      var k = document.getElementById("addKey").value;
+      var v = document.getElementById("addValue").value;
+      var ea = document.getElementById("addEA").value;
+      var es = document.getElementById("addES").value;
+      var p = document.getElementById("addPriority").value;
+      var c = document.getElementById("addCallback").value;
+
+      var options = {};
+      if (ea != '') {
+        options.expirationAbsolute = new Date(Date.parse(ea));
+      }
+      if (es != '') {
+        options.expirationSliding = parseInt(es);
+      }
+      if (p != '') {
+        options.priority = parseInt(p);
+      }
+      if (c != '') {
+        options.callback = c;
+      }
+      cachetest.setItem(k, v, options);
+      updateStatus("Added item '" + k + "' to cache");
+    }
+
+    function exampleGetItem() {
+      if (!isCacheInitialized()) {
+        updateStatus("Cache is not initialized");
+        return;
+      }
+
+      var k = document.getElementById("getKey").value;
+
+      var v = cachetest.getItem(k);
+      updateStatus("Key '" + k + "' has value '" + v + "'");
+    }
+
+    function exampleClearCache() {
+      if (!isCacheInitialized()) {
+        updateStatus("Cache is not initialized");
+        return;
+      }
+      cachetest.clear();
+      updateStatus("Cleared cache");
+    }
+
+    function isCacheInitialized() {
+      return (cachetest != null);
+    }
+
+    function updateStatus(msg) {
+      document.getElementById("status").innerHTML = msg;
+      printCache();
+    }
+
+    function printCache() {
+      document.getElementById("cachetostring").innerHTML = cachetest.toHtmlString();
+    }
+    </script>
+  </head>
+  <body>
+    <form>
+
+<table border="0" cellpadding="8">
+
+<tr><td valign="top">
+<table border="1" cellpadding="8">
+<tr><td valign="top">
+    Create a new cache
+
+</td><td valign="top">
+    <table border="0" cellpadding="2">
+    <tr><td valign="top" align="right">Size:</td><td valign="top"><input type="text" id="createSize" value="-1" size="3" maxLength="4" /></td></tr>
+    </table>
+</td><td>
+    <input type="button" id="create" value="GO" onclick="exampleCreateCache(); return false;" />
+</td></tr>
+
+<tr><td valign="top">
+    Add an item to the cache
+</td><td valign="top">
+    <table border="0" cellpadding="2">
+
+    <tr><td valign="top" align="right">Key:</td><td valign="top"><input type="text" id="addKey" value="" size="10" maxLength="50" /></td></tr>
+    <tr><td valign="top" align="right">Value:</td><td valign="top"><input type="text" id="addValue" value="" size="10" maxLength="50" /></td></tr>
+    <tr><td valign="top" align="right">Absolute Expiration:</td><td valign="top"><input type="text" id="addEA" value="" size="10" maxLength="50" /></td></tr>
+    <tr><td valign="top" align="right">Sliding Expiration:</td><td valign="top"><input type="text" id="addES" value="" size="10" maxLength="50" /> (s)</td></tr>
+
+    <tr><td valign="top" align="right">Priority:</td><td valign="top"><input type="text" id="addPriority" value="" size="10" maxLength="50" /></td></tr>
+
+    <tr><td valign="top" align="right">Callback:</td><td valign="top"><input type="text" id="addCallback" value="" size="10" maxLength="50" /></td></tr>
+    </table>
+</td><td>
+    <input type="button" id="add" value="GO" onclick="exampleAddItem(); return false;" />
+</td></tr>
+<tr><td valign="top">
+    Get item from cache
+</td><td valign="top">
+
+    <table border="0" cellpadding="2">
+    <tr><td valign="top" align="right">Key:</td><td valign="top"><input type="text" id="getKey" value="" size="10" maxLength="50" /></td></tr>
+
+    </table>
+</td><td>
+    <input type="button" id="get" value="GO" onclick="exampleGetItem(); return false;" />
+</td></tr>
+<tr><td valign="top">
+    Clear the cache
+</td><td valign="top">
+    &nbsp;
+
+</td><td>
+    <input type="button" id="clear" value="GO" onclick="exampleClearCache(); return false;" />
+</td></tr>
+</table>
+</td><td valign="top">
+<div id="status" style="color: #18a760;"></div><br />
+
+<div id="cachetostring"></div>
+</td></tr></table>
+</form>
+
+  </body>
+</html>
