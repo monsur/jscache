@@ -32,7 +32,7 @@ How It Works
 		//                are passed as parameters to the callback function.
 		cache.setItem("A", "1", {expirationAbsolute: null, 
 		                         expirationSliding: 60, 
-		                         priority: CachePriority.High,
+		                         priority: CachePriority.HIGH,
 		                         callback: function(k, v) { alert('removed ' + k); }
 		                        });
 		                        
