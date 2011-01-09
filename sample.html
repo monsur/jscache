@@ -35,7 +35,7 @@
         options.priority = parseInt(p);
       }
       if (c != '') {
-        options.callback = c;
+        options.callback = new Function("key", "value", c);
       }
       cachetest.setItem(k, v, options);
       updateStatus("Added item '" + k + "' to cache");

@@ -24,6 +24,14 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
+var DEBUG = true;
+
+function log(msg) {
+  if (DEBUG) {
+    console.log(msg);
+  }
+}
+
 // ****************************************************************************
 // CachePriority ENUM
 // An easier way to refer to the priority of a cache item
@@ -42,16 +50,14 @@ var CachePriority = {
 function Cache(maxSize) {
     this.items = {};
     this.count = 0;
-    if (maxSize == null) {
-      maxSize = -1;
-    }
-    this.maxSize = maxSize;
+    this.maxSize = maxSize || -1;
     this.fillFactor = .75;
     this.purgeSize = Math.round(this.maxSize * this.fillFactor);
 
     this.stats = {};
     this.stats.hits = 0;
     this.stats.misses = 0;
+    log('Initialized cache with size ' + maxSize);
 }
 
 // ****************************************************************************
@@ -80,8 +86,10 @@ Cache.prototype.getItem = function(key) {
   var returnVal = item ? item.value : null;
   if (returnVal) {
     this.stats.hits++;
+    log('Cache HIT for key ' + key)
   } else {
     this.stats.misses++;
+    log('Cache MISS for key ' + key)
   }
   return returnVal;
 };
@@ -132,10 +140,14 @@ Cache.prototype.setItem = function(key, value, options) {
     this._removeItem(key);
   }
   this._addItem(new CacheItem(key, value, options));
+  log("Setting key " + key);
 
   // if the cache is full, purge it
   if ((this.maxSize > 0) && (this.count > this.maxSize)) {
-    this._purge();
+    var that = this;
+    setTimeout(function() {
+      that._purge.call(that);
+    }, 0);
   }
 };
 
@@ -147,7 +159,8 @@ Cache.prototype.clear = function() {
   // loop through each item in the cache and remove it
   for (var key in this.items) {
     this._removeItem(key);
-  }  
+  }
+  log('Cache cleared');
 };
 
 // ****************************************************************************
@@ -185,6 +198,7 @@ Cache.prototype._purge = function() {
       this._removeItem(ritem.key);
     }
   }
+  log('Purged cached');
 };
 
 // ****************************************************************************
@@ -202,6 +216,7 @@ Cache.prototype._removeItem = function(key) {
   var item = this.items[key];
   delete this.items[key];
   this.count--;
+  log("removed key " + key);
 
   // if there is a callback function, call it at the end of execution
   if (item.options.callback != null) {
@@ -217,12 +232,12 @@ Cache.prototype._removeItem = function(key) {
 Cache.prototype._isExpired = function(item) {
   var now = new Date().getTime();
   var expired = false;
-  if ((item.options.expirationAbsolute) &&
+  if (item.options.expirationAbsolute &&
       (item.options.expirationAbsolute < now)) {
       // if the absolute expiration has passed, expire the item
       expired = true;
   } 
-  if (!expired && (item.options.expirationSliding)) {
+  if (!expired && item.options.expirationSliding) {
     // if the sliding expiration has passed, expire the item
     var lastAccess =
         item.lastAccessed + (item.options.expirationSliding * 1000);
