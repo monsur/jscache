@@ -42,12 +42,13 @@ var CachePriority = {
 function Cache(maxSize) {
     this.items = {};
     this.count = 0;
-    if (maxSize == null)
-        maxSize = -1;
+    if (maxSize == null) {
+      maxSize = -1;
+    }
     this.maxSize = maxSize;
     this.fillFactor = .75;
     this.purgeSize = Math.round(this.maxSize * this.fillFactor);
-    
+
     this.stats = {};
     this.stats.hits = 0;
     this.stats.misses = 0;
@@ -60,30 +61,29 @@ function Cache(maxSize) {
 // INPUT: key - the key to load from the cache
 Cache.prototype.getItem = function(key) {
 
-    // retrieve the item from the cache
-    var item = this.items[key];
-    
-    if (item != null) {
-        if (!this._isExpired(item)) {
-            // if the item is not expired
-            // update its last accessed date
-            item.lastAccessed = new Date().getTime();
-        } else {
-            // if the item is expired, remove it from the cache
-            this._removeItem(key);
-            item = null;
-        }
-    }
-    
-    // return the item value (if it exists), or null
-    var returnVal = null;
-    if (item != null) {
-        returnVal = item.value;
-        this.stats.hits++;
+  // retrieve the item from the cache
+  var item = this.items[key];
+
+  if (item != null) {
+    if (!this._isExpired(item)) {
+      // if the item is not expired
+      // update its last accessed date
+      item.lastAccessed = new Date().getTime();
     } else {
-        this.stats.misses++;
+      // if the item is expired, remove it from the cache
+      this._removeItem(key);
+      item = null;
     }
-    return returnVal;
+  }
+
+  // return the item value (if it exists), or null
+  var returnVal = item ? item.value : null;
+  if (returnVal) {
+    this.stats.hits++;
+  } else {
+    this.stats.misses++;
+  }
+  return returnVal;
 };
 
 // ****************************************************************************
@@ -108,30 +108,35 @@ Cache.prototype.getItem = function(key) {
 //                are passed as parameters to the callback function.
 Cache.prototype.setItem = function(key, value, options) {
 
-    function CacheItem(k, v, o) {
-        if ((k == null) || (k == ''))
-            throw new Error("key cannot be null or empty");
-        this.key = k;
-        this.value = v;
-        if (o == null)
-            o = {};
-        if (o.expirationAbsolute != null)
-            o.expirationAbsolute = o.expirationAbsolute.getTime();
-        if (o.priority == null)
-            o.priority = CachePriority.Normal;
-        this.options = o;
-        this.lastAccessed = new Date().getTime();
+  function CacheItem(k, v, o) {
+    if ((k == null) || (k == '')) {
+      throw new Error("key cannot be null or empty");
     }
+    this.key = k;
+    this.value = v;
+    if (o == null) {
+      o = {};
+    }
+    if (o.expirationAbsolute != null) {
+      o.expirationAbsolute = o.expirationAbsolute.getTime();
+    }
+    if (o.priority == null) {
+      o.priority = CachePriority.Normal;
+    }
+    this.options = o;
+    this.lastAccessed = new Date().getTime();
+  }
 
-    // add a new cache item to the cache
-    if (this.items[key] != null)
-        this._removeItem(key);
-    this._addItem(new CacheItem(key, value, options));
-    
-    // if the cache is full, purge it
-    if ((this.maxSize > 0) && (this.count > this.maxSize)) {
-        this._purge();
-    }
+  // add a new cache item to the cache
+  if (this.items[key] != null) {
+    this._removeItem(key);
+  }
+  this._addItem(new CacheItem(key, value, options));
+
+  // if the cache is full, purge it
+  if ((this.maxSize > 0) && (this.count > this.maxSize)) {
+    this._purge();
+  }
 };
 
 // ****************************************************************************
@@ -139,103 +144,102 @@ Cache.prototype.setItem = function(key, value, options) {
 // Remove all items from the cache
 Cache.prototype.clear = function() {
 
-    // loop through each item in the cache and remove it
-    for (var key in this.items) {
-      this._removeItem(key);
-    }  
+  // loop through each item in the cache and remove it
+  for (var key in this.items) {
+    this._removeItem(key);
+  }  
 };
 
 // ****************************************************************************
 // Cache._purge (PRIVATE FUNCTION)
 // remove old elements from the cache
 Cache.prototype._purge = function() {
-    
-    var tmparray = new Array();
-    
-    // loop through the cache, expire items that should be expired
-    // otherwise, add the item to an array
-    for (var key in this.items) {
-        var item = this.items[key];
-        if (this._isExpired(item)) {
-            this._removeItem(key);
-        } else {
-            tmparray.push(item);
-        }
-    }
-    
-    if (tmparray.length > this.purgeSize) {
 
-        // sort this array based on cache priority and the last accessed date
-        tmparray = tmparray.sort(function(a, b) { 
-            if (a.options.priority != b.options.priority) {
-                return b.options.priority - a.options.priority;
-            } else {
-                return b.lastAccessed - a.lastAccessed;
-            }
-        });
-        
-        // remove items from the end of the array
-        while (tmparray.length > this.purgeSize) {
-            var ritem = tmparray.pop();
-            this._removeItem(ritem.key);
-        }
+  var tmparray = new Array();
+
+  // loop through the cache, expire items that should be expired
+  // otherwise, add the item to an array
+  for (var key in this.items) {
+    var item = this.items[key];
+    if (this._isExpired(item)) {
+      this._removeItem(key);
+    } else {
+      tmparray.push(item);
     }
+  }
+
+  if (tmparray.length > this.purgeSize) {
+
+    // sort this array based on cache priority and the last accessed date
+    tmparray = tmparray.sort(function(a, b) { 
+      if (a.options.priority != b.options.priority) {
+        return b.options.priority - a.options.priority;
+      } else {
+        return b.lastAccessed - a.lastAccessed;
+      }
+    });
+
+    // remove items from the end of the array
+    while (tmparray.length > this.purgeSize) {
+      var ritem = tmparray.pop();
+      this._removeItem(ritem.key);
+    }
+  }
 };
 
 // ****************************************************************************
 // Cache._addItem (PRIVATE FUNCTION)
 // add an item to the cache
 Cache.prototype._addItem = function(item) {
-    this.items[item.key] = item;
-    this.count++;
+  this.items[item.key] = item;
+  this.count++;
 };
 
 // ****************************************************************************
 // Cache._removeItem (PRIVATE FUNCTION)
 // Remove an item from the cache, call the callback function (if necessary)
 Cache.prototype._removeItem = function(key) {
-    var item = this.items[key];
-    delete this.items[key];
-    this.count--;
-    
-    // if there is a callback function, call it at the end of execution
-    if (item.options.callback != null) {
-        var callback = function() {
-            item.options.callback(item.key, item.value);
-        };
-        setTimeout(callback, 0);
-    }
+  var item = this.items[key];
+  delete this.items[key];
+  this.count--;
+
+  // if there is a callback function, call it at the end of execution
+  if (item.options.callback != null) {
+    setTimeout(function() {
+      item.options.callback.call(null, item.key, item.value);
+    }, 0);
+  }
 };
 
 // ****************************************************************************
 // Cache._isExpired (PRIVATE FUNCTION)
 // Returns true if the item should be expired based on its expiration options
 Cache.prototype._isExpired = function(item) {
-    var now = new Date().getTime();
-    var expired = false;
-    if ((item.options.expirationAbsolute) &&
-        (item.options.expirationAbsolute < now)) {
-        // if the absolute expiration has passed, expire the item
-        expired = true;
-    } 
-    if (!expired && (item.options.expirationSliding)) {
-        // if the sliding expiration has passed, expire the item
-        var lastAccess =
-            item.lastAccessed + (item.options.expirationSliding * 1000);
-        if (lastAccess < now) {
-            expired = true;
-        }
+  var now = new Date().getTime();
+  var expired = false;
+  if ((item.options.expirationAbsolute) &&
+      (item.options.expirationAbsolute < now)) {
+      // if the absolute expiration has passed, expire the item
+      expired = true;
+  } 
+  if (!expired && (item.options.expirationSliding)) {
+    // if the sliding expiration has passed, expire the item
+    var lastAccess =
+        item.lastAccessed + (item.options.expirationSliding * 1000);
+    if (lastAccess < now) {
+      expired = true;
     }
-    return expired;
+  }
+  return expired;
 };
 
 Cache.prototype.toHtmlString = function() {
-    var returnStr = this.count + " item(s) in cache<br /><ul>";
-    for (var key in this.items) {
-        var item = this.items[key];
-        returnStr = returnStr + "<li>" + item.key.toString() + " = " +
-            item.value.toString() + "</li>";
-    }
-    returnStr = returnStr + "</ul>";
-    return returnStr;
+  var returnStr = this.count + " item(s) in cache<br /><ul>";
+  for (var key in this.items) {
+    var item = this.items[key];
+    returnStr = returnStr + "<li>" + item.key.toString() + " = " +
+        item.value.toString() + "</li>";
+  }
+  returnStr = returnStr + "</ul>";
+  return returnStr;
 };
