@@ -24,60 +24,57 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var DEBUG = true;
-
-function log(msg) {
-  if (DEBUG) {
-    console.log(msg);
-  }
-}
-
-// ****************************************************************************
-// CachePriority ENUM
-// An easier way to refer to the priority of a cache item
+/**
+ * An easier way to refer to the priority of a cache item
+ * @enum {number}
+ */
 var CachePriority = {
-    Low: 1,
-    Normal: 2,
-    High: 4
+  'LOW': 1,
+  'NORMAL': 2,
+  'HIGH': 4
 };
 
-// ****************************************************************************
-// Cache constructor
-// Creates a new cache object
-// INPUT: maxSize (optional) - indicates how many items the cache can hold.
-//                             default is -1, which means no limit on the 
-//                             number of items.
-function Cache(maxSize) {
-    this.items = {};
-    this.count = 0;
-    this.maxSize = maxSize || -1;
-    this.fillFactor = .75;
-    this.purgeSize = Math.round(this.maxSize * this.fillFactor);
 
-    this.stats = {};
-    this.stats.hits = 0;
-    this.stats.misses = 0;
-    log('Initialized cache with size ' + maxSize);
+/**
+ * Creates a new Cache object.
+ * @param {number} maxSize The maximum size of the cache (or -1 for no max).
+ * @param {boolean} debug Whether to log events to the console.log.
+ * @constructor
+ */
+function Cache(maxSize, debug) {
+    this.maxSize_ = maxSize || -1;
+    this.debug_ = debug || false;
+    this.items_ = {};
+    this.count_ = 0;
+
+    var fillFactor = .75;
+    this.purgeSize_ = Math.round(this.maxSize_ * fillFactor);
+
+    this.stats_ = {};
+    this.stats_['hits'] = 0;
+    this.stats_['misses'] = 0;
+    this.log_('Initialized cache with size ' + maxSize);
 }
 
-// ****************************************************************************
-// Cache.getItem
-// retrieves an item from the cache, returns null if the item doesn't exist
-// or it is expired.
-// INPUT: key - the key to load from the cache
+
+/**
+ * Retrieves an item from the cache.
+ * @param {string} key The key to retrieve.
+ * @return {Object} The item, or null if it doesn't exist.
+ */
 Cache.prototype.getItem = function(key) {
 
   // retrieve the item from the cache
-  var item = this.items[key];
+  var item = this.items_[key];
 
   if (item != null) {
-    if (!this._isExpired(item)) {
+    if (!this.isExpired_(item)) {
       // if the item is not expired
       // update its last accessed date
       item.lastAccessed = new Date().getTime();
     } else {
       // if the item is expired, remove it from the cache
-      this._removeItem(key);
+      this.removeItem_(key);
       item = null;
     }
   }
@@ -85,35 +82,36 @@ Cache.prototype.getItem = function(key) {
   // return the item value (if it exists), or null
   var returnVal = item ? item.value : null;
   if (returnVal) {
-    this.stats.hits++;
-    log('Cache HIT for key ' + key)
+    this.stats_['hits']++;
+    this.log_('Cache HIT for key ' + key)
   } else {
-    this.stats.misses++;
-    log('Cache MISS for key ' + key)
+    this.stats_['misses']++;
+    this.log_('Cache MISS for key ' + key)
   }
   return returnVal;
 };
 
-// ****************************************************************************
-// Cache.setItem
-// sets an item in the cache
-// parameters: key - the key to refer to the object
-//             value - the object to cache
-//             options - an optional parameter described below
-// the last parameter accepts an object which controls various caching options:
-//      expirationAbsolute: the datetime when the item should expire
-//      expirationSliding: an integer representing the seconds since
-//                         the last cache access after which the item
-//                         should expire
-//      priority: How important it is to leave this item in the cache.
-//                You can use the values CachePriority.Low, .Normal, or 
-//                .High, or you can just use an integer.  Note that 
-//                placing a priority on an item does not guarantee 
-//                it will remain in cache.  It can still be purged if 
-//                an expiration is hit, or if the cache is full.
-//      callback: A function that gets called when the item is purged
-//                from cache.  The key and value of the removed item
-//                are passed as parameters to the callback function.
+
+/**
+ * Sets an item in the cache.
+ * @param {string} key The key to refer to the item.
+ * @param {Object} value The item to cache.
+ * @param {Object} options an optional object which controls various caching
+ *    options:
+ *      expirationAbsolute: the datetime when the item should expire
+ *      expirationSliding: an integer representing the seconds since
+ *                         the last cache access after which the item
+ *                         should expire
+ *      priority: How important it is to leave this item in the cache.
+ *                You can use the values CachePriority.Low, .Normal, or 
+ *                .High, or you can just use an integer.  Note that 
+ *                placing a priority on an item does not guarantee 
+ *                it will remain in cache.  It can still be purged if 
+ *                an expiration is hit, or if the cache is full.
+ *      callback: A function that gets called when the item is purged
+ *                from cache.  The key and value of the removed item
+ *                are passed as parameters to the callback function.
+ */
 Cache.prototype.setItem = function(key, value, options) {
 
   function CacheItem(k, v, o) {
@@ -129,59 +127,83 @@ Cache.prototype.setItem = function(key, value, options) {
       o.expirationAbsolute = o.expirationAbsolute.getTime();
     }
     if (o.priority == null) {
-      o.priority = CachePriority.Normal;
+      o.priority = CachePriority.NORMAL;
     }
     this.options = o;
     this.lastAccessed = new Date().getTime();
   }
 
   // add a new cache item to the cache
-  if (this.items[key] != null) {
-    this._removeItem(key);
+  if (this.items_[key] != null) {
+    this.removeItem_(key);
   }
-  this._addItem(new CacheItem(key, value, options));
-  log("Setting key " + key);
+  this.addItem_(new CacheItem(key, value, options));
+  this.log_("Setting key " + key);
 
   // if the cache is full, purge it
-  if ((this.maxSize > 0) && (this.count > this.maxSize)) {
+  if ((this.maxSize_ > 0) && (this.count_ > this.maxSize_)) {
     var that = this;
     setTimeout(function() {
-      that._purge.call(that);
+      that.purge_.call(that);
     }, 0);
   }
 };
 
-// ****************************************************************************
-// Cache.clear
-// Remove all items from the cache
-Cache.prototype.clear = function() {
 
+/**
+ * Removes all items from the cache.
+ */
+Cache.prototype.clear = function() {
   // loop through each item in the cache and remove it
-  for (var key in this.items) {
-    this._removeItem(key);
+  for (var key in this.items_) {
+    this.removeItem_(key);
   }
-  log('Cache cleared');
+  this.log_('Cache cleared');
 };
 
-// ****************************************************************************
-// Cache._purge (PRIVATE FUNCTION)
-// remove old elements from the cache
-Cache.prototype._purge = function() {
+
+/**
+ * @return {Object} The hits and misses on the cache.
+ */
+Cache.prototype.getStats = function() {
+  return this.stats_;
+};
+
+
+/**
+ * @return {string} Returns an HTML string representation of the cache.
+ */
+Cache.prototype.toHtmlString = function() {
+  var returnStr = this.count_ + " item(s) in cache<br /><ul>";
+  for (var key in this.items_) {
+    var item = this.items_[key];
+    returnStr = returnStr + "<li>" + item.key.toString() + " = " +
+        item.value.toString() + "</li>";
+  }
+  returnStr = returnStr + "</ul>";
+  return returnStr;
+};
+
+
+/**
+ * Removes expired items from the cache.
+ */
+Cache.prototype.purge_ = function() {
 
   var tmparray = new Array();
 
   // loop through the cache, expire items that should be expired
   // otherwise, add the item to an array
-  for (var key in this.items) {
-    var item = this.items[key];
-    if (this._isExpired(item)) {
-      this._removeItem(key);
+  for (var key in this.items_) {
+    var item = this.items_[key];
+    if (this.isExpired_(item)) {
+      this.removeItem_(key);
     } else {
       tmparray.push(item);
     }
   }
 
-  if (tmparray.length > this.purgeSize) {
+  if (tmparray.length > this.purgeSize_) {
 
     // sort this array based on cache priority and the last accessed date
     tmparray = tmparray.sort(function(a, b) { 
@@ -193,30 +215,36 @@ Cache.prototype._purge = function() {
     });
 
     // remove items from the end of the array
-    while (tmparray.length > this.purgeSize) {
+    while (tmparray.length > this.purgeSize_) {
       var ritem = tmparray.pop();
-      this._removeItem(ritem.key);
+      this.removeItem_(ritem.key);
     }
   }
-  log('Purged cached');
+  this.log_('Purged cached');
 };
 
-// ****************************************************************************
-// Cache._addItem (PRIVATE FUNCTION)
-// add an item to the cache
-Cache.prototype._addItem = function(item) {
-  this.items[item.key] = item;
-  this.count++;
+
+/**
+ * Add an item to the cache.
+ * @param {Object} item The cache item to add.
+ * @private
+ */
+Cache.prototype.addItem_ = function(item) {
+  this.items_[item.key] = item;
+  this.count_++;
 };
 
-// ****************************************************************************
-// Cache._removeItem (PRIVATE FUNCTION)
-// Remove an item from the cache, call the callback function (if necessary)
-Cache.prototype._removeItem = function(key) {
-  var item = this.items[key];
-  delete this.items[key];
-  this.count--;
-  log("removed key " + key);
+
+/**
+ * Remove an item from the cache, call the callback function (if it exists).
+ * @param {String} key The key of the item to remove
+ * @private
+ */
+Cache.prototype.removeItem_ = function(key) {
+  var item = this.items_[key];
+  delete this.items_[key];
+  this.count_--;
+  this.log_("removed key " + key);
 
   // if there is a callback function, call it at the end of execution
   if (item.options.callback != null) {
@@ -226,10 +254,13 @@ Cache.prototype._removeItem = function(key) {
   }
 };
 
-// ****************************************************************************
-// Cache._isExpired (PRIVATE FUNCTION)
-// Returns true if the item should be expired based on its expiration options
-Cache.prototype._isExpired = function(item) {
+
+/**
+ * @param {Object} item A cache item.
+ * @return {boolean} True if the item is expired
+ * @private
+ */
+Cache.prototype.isExpired_ = function(item) {
   var now = new Date().getTime();
   var expired = false;
   if (item.options.expirationAbsolute &&
@@ -248,13 +279,14 @@ Cache.prototype._isExpired = function(item) {
   return expired;
 };
 
-Cache.prototype.toHtmlString = function() {
-  var returnStr = this.count + " item(s) in cache<br /><ul>";
-  for (var key in this.items) {
-    var item = this.items[key];
-    returnStr = returnStr + "<li>" + item.key.toString() + " = " +
-        item.value.toString() + "</li>";
+
+/**
+ * Logs a message to the console.log if debug is set to true.
+ * @param {string} msg The message to log.
+ * @private
+ */
+Cache.prototype.log_ = function(msg) {
+  if (this.debug_) {
+    console.log(msg);
   }
-  returnStr = returnStr + "</ul>";
-  return returnStr;
 };
