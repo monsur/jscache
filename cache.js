@@ -92,6 +92,26 @@ Cache.prototype.getItem = function(key) {
 };
 
 
+Cache._CacheItem = function(k, v, o) {
+    if ((k == null) || (k == '')) {
+				throw new Error("key cannot be null or empty");
+    }
+    this.key = k;
+    this.value = v;
+    if (o == null) {
+				o = {};
+    }
+    if (o.expirationAbsolute != null) {
+				o.expirationAbsolute = o.expirationAbsolute.getTime();
+    }
+    if (o.priority == null) {
+				o.priority = CachePriority.NORMAL;
+    }
+    this.options = o;
+    this.lastAccessed = new Date().getTime();
+};
+
+
 /**
  * Sets an item in the cache.
  * @param {string} key The key to refer to the item.
@@ -114,30 +134,11 @@ Cache.prototype.getItem = function(key) {
  */
 Cache.prototype.setItem = function(key, value, options) {
 
-  function CacheItem(k, v, o) {
-    if ((k == null) || (k == '')) {
-      throw new Error("key cannot be null or empty");
-    }
-    this.key = k;
-    this.value = v;
-    if (o == null) {
-      o = {};
-    }
-    if (o.expirationAbsolute != null) {
-      o.expirationAbsolute = o.expirationAbsolute.getTime();
-    }
-    if (o.priority == null) {
-      o.priority = CachePriority.NORMAL;
-    }
-    this.options = o;
-    this.lastAccessed = new Date().getTime();
-  }
-
   // add a new cache item to the cache
   if (this.items_[key] != null) {
     this.removeItem_(key);
   }
-  this.addItem_(new CacheItem(key, value, options));
+  this.addItem_(new Cache._CacheItem(key, value, options));
   this.log_("Setting key " + key);
 
   // if the cache is full, purge it
@@ -290,3 +291,6 @@ Cache.prototype.log_ = function(msg) {
     console.log(msg);
   }
 };
+
+if(module)
+		module.exports = Cache;
