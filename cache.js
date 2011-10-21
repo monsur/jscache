@@ -185,6 +185,24 @@ Cache.prototype.toHtmlString = function() {
 
 
 /**
+ * Allows it to resize the Cache capacity if needed.
+ * @param	{integer} newMaxSize the new max amount of stored entries within the Cache
+ */
+Cache.prototype.resize = function(newMaxSize) {
+  this.log_('Resizing Cache from ' . this.maxSize_ . ' to ' . newMaxSize);
+  if (newMaxSize < this.maxSize_) {
+    if (this.count_ > newMaxSize) {
+      //Cache needs to be purged as it does contain too much entries for the new size
+      this.purge_();
+    } //else if cache isn't filled up to the new limit nothing is to do
+  }
+  //else if newMaxSize >= maxSize nothing to do, just increase size of Cache
+  this.maxSize_ = newMaxSize;
+  this.log_('Resizing done');
+}
+
+
+/**
  * Removes expired items from the cache.
  */
 Cache.prototype.purge_ = function() {
