@@ -47,8 +47,7 @@ function Cache(maxSize, debug) {
     this.items_ = {};
     this.count_ = 0;
 
-    var fillFactor = .75;
-    this.purgeSize_ = Math.round(this.maxSize_ * fillFactor);
+    this.fillFactor_ = .75;
 
     this.stats_ = {};
     this.stats_['hits'] = 0;
@@ -201,14 +200,13 @@ Cache.prototype.resize = function(newMaxSize) {
   this.log_('Resizing done');
 }
 
-
 /**
  * Removes expired items from the cache.
  */
 Cache.prototype.purge_ = function() {
 
   var tmparray = new Array();
-
+  var purgeSize = Math.round(this.maxSize_ * this.fillFactor_);
   // loop through the cache, expire items that should be expired
   // otherwise, add the item to an array
   for (var key in this.items_) {
@@ -220,8 +218,7 @@ Cache.prototype.purge_ = function() {
     }
   }
 
-  if (tmparray.length > this.purgeSize_) {
-
+  if (tmparray.length > purgeSize) {
     // sort this array based on cache priority and the last accessed date
     tmparray = tmparray.sort(function(a, b) { 
       if (a.options.priority != b.options.priority) {
@@ -232,7 +229,7 @@ Cache.prototype.purge_ = function() {
     });
 
     // remove items from the end of the array
-    while (tmparray.length > this.purgeSize_) {
+    while (tmparray.length > purgeSize) {
       var ritem = tmparray.pop();
       this.removeItem_(ritem.key);
     }
