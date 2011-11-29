@@ -308,5 +308,6 @@ Cache.prototype.log_ = function(msg) {
   }
 };
 
-if(module)
-		module.exports = Cache;
+if (typeof module !== "undefined") {
+  module.exports = Cache;
+}
