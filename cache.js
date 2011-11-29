@@ -120,10 +120,10 @@ Cache._CacheItem = function(k, v, o) {
  *                         the last cache access after which the item
  *                         should expire
  *      priority: How important it is to leave this item in the cache.
- *                You can use the values CachePriority.Low, .Normal, or 
- *                .High, or you can just use an integer.  Note that 
- *                placing a priority on an item does not guarantee 
- *                it will remain in cache.  It can still be purged if 
+ *                You can use the values CachePriority.LOW, .NORMAL, or
+ *                .HIGH, or you can just use an integer.  Note that
+ *                placing a priority on an item does not guarantee
+ *                it will remain in cache.  It can still be purged if
  *                an expiration is hit, or if the cache is full.
  *      callback: A function that gets called when the item is purged
  *                from cache.  The key and value of the removed item
@@ -188,15 +188,18 @@ Cache.prototype.toHtmlString = function() {
  * @param	{integer} newMaxSize the new max amount of stored entries within the Cache
  */
 Cache.prototype.resize = function(newMaxSize) {
-  this.log_('Resizing Cache from ' . this.maxSize_ . ' to ' . newMaxSize);
-  if (newMaxSize < this.maxSize_) {
-    if (this.count_ > newMaxSize) {
-      //Cache needs to be purged as it does contain too much entries for the new size
-      this.purge_();
-    } //else if cache isn't filled up to the new limit nothing is to do
-  }
-  //else if newMaxSize >= maxSize nothing to do, just increase size of Cache
+  this.log_('Resizing Cache from ' + this.maxSize_ + ' to ' + newMaxSize);
+  // Set new size before purging so we know how many items to purge
+  var oldMaxSize = this.maxSize_
   this.maxSize_ = newMaxSize;
+
+  if (newMaxSize > 0 && (oldMaxSize < 0 || newMaxSize < oldMaxSize)) {
+    if (this.count_ > newMaxSize) {
+      // Cache needs to be purged as it does contain too much entries for the new size
+      this.purge_();
+    } // else if cache isn't filled up to the new limit nothing is to do
+  }
+  // else if newMaxSize >= maxSize nothing to do
   this.log_('Resizing done');
 }
 
