@@ -53,8 +53,7 @@ To do this simply create the cache with a different storage backend like:
 
     var cache = new Cache(-1, false, new Cache.LocalStorageCacheStorage());
 
-All the other APIs are identical. The only limitation is that all values have to be
-JSON stringifiable.
+All values have to be JSON stringifiable, which means the callback option to setItem won't work.
 
 If you want to have multiple independent caches, pass in a namespace argument, like:
 
