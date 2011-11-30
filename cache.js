@@ -79,6 +79,47 @@ Cache.BasicCacheStorage.prototype.keys = function() {
 }
 
 /**
+ * Local Storage based persistant cache storage backend.
+ * If a size of -1 is used, it will purge itself when localStorage
+ * is filled. This is 5MB on Chrome/Safari.
+ * WARNING: The amortized cost of this cache is very low, however,
+ * when a the cache fills up all of localStorage, and a purge is required, it can
+ * take a few seconds to fetch all the keys and values in storage.
+ * Since localStorage doesn't have namespacing, this means that even if this
+ * individual cache is small, it can take this time if there are lots of other
+ * other keys in localStorage.
+ *
+ * @param {string} namespace A string to namespace the items in localStorage. Defaults to 'default'.
+ * @constructor
+ */
+Cache.LocalStorageCacheStorage = function(namespace) {
+  this.prefix_ = 'cache-storage.' + (namespace || 'default') + '.';
+  // Regexp String Escaping from http://simonwillison.net/2006/Jan/20/escape/#p-6
+  var escapedPrefix = this.prefix_.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  this.regexp_ = new RegExp('^' + escapedPrefix)
+}
+Cache.LocalStorageCacheStorage.prototype.get = function(key) {
+  var item = localStorage[this.prefix_ + key];
+  if (item) return JSON.parse(item);
+  return null;
+}
+Cache.LocalStorageCacheStorage.prototype.set = function(key, value) {
+  localStorage[this.prefix_ + key] = JSON.stringify(value);
+}
+Cache.LocalStorageCacheStorage.prototype.remove = function(key) {
+  var item = this.get(key);
+  delete localStorage[this.prefix_ + key];
+  return item;
+}
+Cache.LocalStorageCacheStorage.prototype.keys = function() {
+  var ret = [], p;
+  for (p in localStorage) {
+    if (p.match(this.regexp_)) ret.push(p.replace(this.prefix_, ''));
+  };
+  return ret;
+}
+
+/**
  * Retrieves an item from the cache.
  * @param {string} key The key to retrieve.
  * @return {Object} The item, or null if it doesn't exist.
