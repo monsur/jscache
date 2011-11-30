@@ -34,21 +34,19 @@ var CachePriority = {
   'HIGH': 4
 };
 
-
 /**
  * Creates a new Cache object.
  * @param {number} maxSize The maximum size of the cache (or -1 for no max).
  * @param {boolean} debug Whether to log events to the console.log.
  * @constructor
  */
-function Cache(maxSize, debug) {
+function Cache(maxSize, debug, storage) {
     this.maxSize_ = maxSize || -1;
     this.debug_ = debug || false;
-    this.items_ = {};
+    this.items_ = storage || new Cache.BasicCacheStorage();
     this.count_ = 0;
 
-    var fillFactor = .75;
-    this.purgeSize_ = Math.round(this.maxSize_ * fillFactor);
+    this.fillFactor_ = .75;
 
     this.stats_ = {};
     this.stats_['hits'] = 0;
@@ -56,6 +54,70 @@ function Cache(maxSize, debug) {
     this.log_('Initialized cache with size ' + maxSize);
 }
 
+/**
+ * Basic in memory cache storage backend.
+ * @constructor
+ */
+Cache.BasicCacheStorage = function() {
+  this.items_ = {};
+}
+Cache.BasicCacheStorage.prototype.get = function(key) {
+  return this.items_[key];
+}
+Cache.BasicCacheStorage.prototype.set = function(key, value) {
+  this.items_[key] = value;
+}
+Cache.BasicCacheStorage.prototype.remove = function(key) {
+  var item = this.get(key);
+  delete this.items_[key];
+  return item;
+}
+Cache.BasicCacheStorage.prototype.keys = function() {
+  var ret = [], p;
+  for (p in this.items_) ret.push(p);
+  return ret;
+}
+
+/**
+ * Local Storage based persistant cache storage backend.
+ * If a size of -1 is used, it will purge itself when localStorage
+ * is filled. This is 5MB on Chrome/Safari.
+ * WARNING: The amortized cost of this cache is very low, however,
+ * when a the cache fills up all of localStorage, and a purge is required, it can
+ * take a few seconds to fetch all the keys and values in storage.
+ * Since localStorage doesn't have namespacing, this means that even if this
+ * individual cache is small, it can take this time if there are lots of other
+ * other keys in localStorage.
+ *
+ * @param {string} namespace A string to namespace the items in localStorage. Defaults to 'default'.
+ * @constructor
+ */
+Cache.LocalStorageCacheStorage = function(namespace) {
+  this.prefix_ = 'cache-storage.' + (namespace || 'default') + '.';
+  // Regexp String Escaping from http://simonwillison.net/2006/Jan/20/escape/#p-6
+  var escapedPrefix = this.prefix_.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  this.regexp_ = new RegExp('^' + escapedPrefix)
+}
+Cache.LocalStorageCacheStorage.prototype.get = function(key) {
+  var item = localStorage[this.prefix_ + key];
+  if (item) return JSON.parse(item);
+  return null;
+}
+Cache.LocalStorageCacheStorage.prototype.set = function(key, value) {
+  localStorage[this.prefix_ + key] = JSON.stringify(value);
+}
+Cache.LocalStorageCacheStorage.prototype.remove = function(key) {
+  var item = this.get(key);
+  delete localStorage[this.prefix_ + key];
+  return item;
+}
+Cache.LocalStorageCacheStorage.prototype.keys = function() {
+  var ret = [], p;
+  for (p in localStorage) {
+    if (p.match(this.regexp_)) ret.push(p.replace(this.prefix_, ''));
+  };
+  return ret;
+}
 
 /**
  * Retrieves an item from the cache.
@@ -65,7 +127,7 @@ function Cache(maxSize, debug) {
 Cache.prototype.getItem = function(key) {
 
   // retrieve the item from the cache
-  var item = this.items_[key];
+  var item = this.items_.get(key);
 
   if (item != null) {
     if (!this.isExpired_(item)) {
@@ -121,10 +183,10 @@ Cache._CacheItem = function(k, v, o) {
  *                         the last cache access after which the item
  *                         should expire
  *      priority: How important it is to leave this item in the cache.
- *                You can use the values CachePriority.Low, .Normal, or 
- *                .High, or you can just use an integer.  Note that 
- *                placing a priority on an item does not guarantee 
- *                it will remain in cache.  It can still be purged if 
+ *                You can use the values CachePriority.LOW, .NORMAL, or
+ *                .HIGH, or you can just use an integer.  Note that
+ *                placing a priority on an item does not guarantee
+ *                it will remain in cache.  It can still be purged if
  *                an expiration is hit, or if the cache is full.
  *      callback: A function that gets called when the item is purged
  *                from cache.  The key and value of the removed item
@@ -133,7 +195,7 @@ Cache._CacheItem = function(k, v, o) {
 Cache.prototype.setItem = function(key, value, options) {
 
   // add a new cache item to the cache
-  if (this.items_[key] != null) {
+  if (this.items_.get(key) != null) {
     this.removeItem_(key);
   }
   this.addItem_(new Cache._CacheItem(key, value, options));
@@ -154,8 +216,9 @@ Cache.prototype.setItem = function(key, value, options) {
  */
 Cache.prototype.clear = function() {
   // loop through each item in the cache and remove it
-  for (var key in this.items_) {
-    this.removeItem_(key);
+  var keys = this.items_.keys()
+  for (var i = 0; i < keys.length; i++) {
+    this.removeItem_(keys[i]);
   }
   this.log_('Cache cleared');
 };
@@ -174,8 +237,9 @@ Cache.prototype.getStats = function() {
  */
 Cache.prototype.toHtmlString = function() {
   var returnStr = this.count_ + " item(s) in cache<br /><ul>";
-  for (var key in this.items_) {
-    var item = this.items_[key];
+  var keys = this.items_.keys()
+  for (var i = 0; i < keys.length; i++) {
+    var item = this.items_.get(keys[i]);
     returnStr = returnStr + "<li>" + item.key.toString() + " = " +
         item.value.toString() + "</li>";
   }
@@ -189,30 +253,35 @@ Cache.prototype.toHtmlString = function() {
  * @param	{integer} newMaxSize the new max amount of stored entries within the Cache
  */
 Cache.prototype.resize = function(newMaxSize) {
-  this.log_('Resizing Cache from ' . this.maxSize_ . ' to ' . newMaxSize);
-  if (newMaxSize < this.maxSize_) {
-    if (this.count_ > newMaxSize) {
-      //Cache needs to be purged as it does contain too much entries for the new size
-      this.purge_();
-    } //else if cache isn't filled up to the new limit nothing is to do
-  }
-  //else if newMaxSize >= maxSize nothing to do, just increase size of Cache
+  this.log_('Resizing Cache from ' + this.maxSize_ + ' to ' + newMaxSize);
+  // Set new size before purging so we know how many items to purge
+  var oldMaxSize = this.maxSize_
   this.maxSize_ = newMaxSize;
+
+  if (newMaxSize > 0 && (oldMaxSize < 0 || newMaxSize < oldMaxSize)) {
+    if (this.count_ > newMaxSize) {
+      // Cache needs to be purged as it does contain too much entries for the new size
+      this.purge_();
+    } // else if cache isn't filled up to the new limit nothing is to do
+  }
+  // else if newMaxSize >= maxSize nothing to do
   this.log_('Resizing done');
 }
-
 
 /**
  * Removes expired items from the cache.
  */
 Cache.prototype.purge_ = function() {
-
   var tmparray = new Array();
-
+  var purgeSize = Math.round(this.maxSize_ * this.fillFactor_);
+  if (this.maxSize_ < 0)
+    purgeSize = this.count_ * this.fillFactor_;
   // loop through the cache, expire items that should be expired
   // otherwise, add the item to an array
-  for (var key in this.items_) {
-    var item = this.items_[key];
+  var keys = this.items_.keys();
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var item = this.items_.get(key);
     if (this.isExpired_(item)) {
       this.removeItem_(key);
     } else {
@@ -220,19 +289,17 @@ Cache.prototype.purge_ = function() {
     }
   }
 
-  if (tmparray.length > this.purgeSize_) {
-
+  if (tmparray.length > purgeSize) {
     // sort this array based on cache priority and the last accessed date
-    tmparray = tmparray.sort(function(a, b) { 
+    tmparray = tmparray.sort(function(a, b) {
       if (a.options.priority != b.options.priority) {
         return b.options.priority - a.options.priority;
       } else {
         return b.lastAccessed - a.lastAccessed;
       }
     });
-
     // remove items from the end of the array
-    while (tmparray.length > this.purgeSize_) {
+    while (tmparray.length > purgeSize) {
       var ritem = tmparray.pop();
       this.removeItem_(ritem.key);
     }
@@ -246,9 +313,20 @@ Cache.prototype.purge_ = function() {
  * @param {Object} item The cache item to add.
  * @private
  */
-Cache.prototype.addItem_ = function(item) {
-  this.items_[item.key] = item;
-  this.count_++;
+Cache.prototype.addItem_ = function(item, attemptedAlready) {
+  var cache = this;
+  try {
+    this.items_.set(item.key, item);
+    this.count_++;
+  } catch(err) {
+    if (attemptedAlready) {
+      this.log_('Failed setting again, giving up: ' + err.toString());
+      throw(err);
+    }
+    this.log_('Error adding item, purging and trying again: ' + err.toString());
+    this.purge_();
+    this.addItem_(item, true);
+  }
 };
 
 
@@ -258,8 +336,7 @@ Cache.prototype.addItem_ = function(item) {
  * @private
  */
 Cache.prototype.removeItem_ = function(key) {
-  var item = this.items_[key];
-  delete this.items_[key];
+  var item = this.items_.remove(key);
   this.count_--;
   this.log_("removed key " + key);
 
@@ -284,7 +361,7 @@ Cache.prototype.isExpired_ = function(item) {
       (item.options.expirationAbsolute < now)) {
       // if the absolute expiration has passed, expire the item
       expired = true;
-  } 
+  }
   if (!expired && item.options.expirationSliding) {
     // if the sliding expiration has passed, expire the item
     var lastAccess =
@@ -308,5 +385,6 @@ Cache.prototype.log_ = function(msg) {
   }
 };
 
-if(module)
-		module.exports = Cache;
+if (typeof module !== "undefined") {
+  module.exports = Cache;
+}
