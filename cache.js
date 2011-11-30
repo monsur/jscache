@@ -272,9 +272,20 @@ Cache.prototype.purge_ = function() {
  * @param {Object} item The cache item to add.
  * @private
  */
-Cache.prototype.addItem_ = function(item) {
-  this.items_.set(item.key, item);
-  this.count_++;
+Cache.prototype.addItem_ = function(item, attemptedAlready) {
+  var cache = this;
+  try {
+    this.items_.set(item.key, item);
+    this.count_++;
+  } catch(err) {
+    if (attemptedAlready) {
+      this.log_('Failed setting again, giving up: ' + err.toString());
+      throw(err);
+    }
+    this.log_('Error adding item, purging and trying again: ' + err.toString());
+    this.purge_();
+    this.addItem_(item, true);
+  }
 };
 
 
