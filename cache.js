@@ -43,8 +43,8 @@ var CachePriority = {
 function Cache(maxSize, debug, storage) {
     this.maxSize_ = maxSize || -1;
     this.debug_ = debug || false;
-    this.items_ = storage || new Cache.BasicCacheStorage();
     this.count_ = 0;
+    this.storage_ = storage || new Cache.BasicCacheStorage();
 
     this.fillFactor_ = .75;
 
@@ -127,7 +127,7 @@ Cache.LocalStorageCacheStorage.prototype.keys = function() {
 Cache.prototype.getItem = function(key) {
 
   // retrieve the item from the cache
-  var item = this.items_.get(key);
+  var item = this.storage_.get(key);
 
   if (item != null) {
     if (!this.isExpired_(item)) {
@@ -195,7 +195,7 @@ Cache._CacheItem = function(k, v, o) {
 Cache.prototype.setItem = function(key, value, options) {
 
   // add a new cache item to the cache
-  if (this.items_.get(key) != null) {
+  if (this.storage_.get(key) != null) {
     this.removeItem_(key);
   }
   this.addItem_(new Cache._CacheItem(key, value, options));
@@ -216,7 +216,7 @@ Cache.prototype.setItem = function(key, value, options) {
  */
 Cache.prototype.clear = function() {
   // loop through each item in the cache and remove it
-  var keys = this.items_.keys()
+  var keys = this.storage_.keys()
   for (var i = 0; i < keys.length; i++) {
     this.removeItem_(keys[i]);
   }
@@ -237,9 +237,9 @@ Cache.prototype.getStats = function() {
  */
 Cache.prototype.toHtmlString = function() {
   var returnStr = this.count_ + " item(s) in cache<br /><ul>";
-  var keys = this.items_.keys()
+  var keys = this.storage_.keys()
   for (var i = 0; i < keys.length; i++) {
-    var item = this.items_.get(keys[i]);
+    var item = this.storage_.get(keys[i]);
     returnStr = returnStr + "<li>" + item.key.toString() + " = " +
         item.value.toString() + "</li>";
   }
@@ -278,10 +278,10 @@ Cache.prototype.purge_ = function() {
     purgeSize = this.count_ * this.fillFactor_;
   // loop through the cache, expire items that should be expired
   // otherwise, add the item to an array
-  var keys = this.items_.keys();
+  var keys = this.storage_.keys();
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
-    var item = this.items_.get(key);
+    var item = this.storage_.get(key);
     if (this.isExpired_(item)) {
       this.removeItem_(key);
     } else {
@@ -316,8 +316,8 @@ Cache.prototype.purge_ = function() {
 Cache.prototype.addItem_ = function(item, attemptedAlready) {
   var cache = this;
   try {
-    this.items_.set(item.key, item);
     this.count_++;
+    this.storage_.set(item.key, item);
   } catch(err) {
     if (attemptedAlready) {
       this.log_('Failed setting again, giving up: ' + err.toString());
@@ -336,9 +336,9 @@ Cache.prototype.addItem_ = function(item, attemptedAlready) {
  * @private
  */
 Cache.prototype.removeItem_ = function(key) {
-  var item = this.items_.remove(key);
   this.count_--;
   this.log_("removed key " + key);
+  var item = this.storage_.remove(key);
 
   // if there is a callback function, call it at the end of execution
   if (item.options.callback != null) {
