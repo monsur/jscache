@@ -45,6 +45,12 @@ How It Works
 		// If the item doesn't exist it returns null.
 		cache.removeItem("A");
 
+		// Returns the number of items in the cache.
+		cache.size();
+
+		// Return stats about the cache, like {"hits": 1, "misses": 4}
+		cache.stats();
+
 		// clears all items from the cache
 		cache.clear();
 
