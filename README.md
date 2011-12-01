@@ -41,6 +41,10 @@ How It Works
 		// returns the cached item
 		cache.getItem("A");
 
+		// Remove and return an item from the cache.
+		// If the item doesn't exist it returns null.
+		cache.removeItem("A");
+
 		// clears all items from the cache
 		cache.clear();
 

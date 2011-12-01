@@ -10,12 +10,16 @@ function testBasicCaching(done) {
   cache.setItem("foo", "bar");
   assertEqual(cache.getItem("foo"), "bar");
   assertEqual(cache.getItem("missing"), null);
+  assertEqual(cache.removeItem("missing"), null);
   var stats = cache.getStats();
   assertEqual(stats.hits, 1);
   assertEqual(stats.misses, 1);
   assertEqual(cache.toHtmlString(), "1 item(s) in cache<br /><ul><li>foo = bar</li></ul>");
   assertEqual(cache.count_, 1);
 
+
+  cache.setItem("foo2", "bar2");
+  assertEqual(cache.removeItem("foo"), "bar");
   cache.clear();
   assertEqual(cache.getItem("foo"), null);
   assertEqual(cache.count_, 0);

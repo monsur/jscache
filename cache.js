@@ -136,7 +136,7 @@ Cache.prototype.getItem = function(key) {
       item.lastAccessed = new Date().getTime();
     } else {
       // if the item is expired, remove it from the cache
-      this.removeItem_(key);
+      this.removeItem(key);
       item = null;
     }
   }
@@ -196,7 +196,7 @@ Cache.prototype.setItem = function(key, value, options) {
 
   // add a new cache item to the cache
   if (this.storage_.get(key) != null) {
-    this.removeItem_(key);
+    this.removeItem(key);
   }
   this.addItem_(new Cache._CacheItem(key, value, options));
   this.log_("Setting key " + key);
@@ -218,7 +218,7 @@ Cache.prototype.clear = function() {
   // loop through each item in the cache and remove it
   var keys = this.storage_.keys()
   for (var i = 0; i < keys.length; i++) {
-    this.removeItem_(keys[i]);
+    this.removeItem(keys[i]);
   }
   this.log_('Cache cleared');
 };
@@ -283,7 +283,7 @@ Cache.prototype.purge_ = function() {
     var key = keys[i];
     var item = this.storage_.get(key);
     if (this.isExpired_(item)) {
-      this.removeItem_(key);
+      this.removeItem(key);
     } else {
       tmparray.push(item);
     }
@@ -301,7 +301,7 @@ Cache.prototype.purge_ = function() {
     // remove items from the end of the array
     while (tmparray.length > purgeSize) {
       var ritem = tmparray.pop();
-      this.removeItem_(ritem.key);
+      this.removeItem(ritem.key);
     }
   }
   this.log_('Purged cached');
@@ -335,10 +335,9 @@ Cache.prototype.addItem_ = function(item, attemptedAlready) {
  * @param {String} key The key of the item to remove
  * @private
  */
-Cache.prototype.removeItem_ = function(key) {
-  this.count_--;
-  this.log_("removed key " + key);
+Cache.prototype.removeItem = function(key) {
   var item = this.storage_.remove(key);
+  this.log_("removed key " + key);
 
   // if there is a callback function, call it at the end of execution
   if (item && item.options && item.options.callback) {
@@ -346,6 +345,7 @@ Cache.prototype.removeItem_ = function(key) {
       item.options.callback.call(null, item.key, item.value);
     }, 0);
   }
+  return item ? item.value : null;
 };
 
 
