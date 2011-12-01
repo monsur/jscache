@@ -43,8 +43,7 @@ var CachePriority = {
 function Cache(maxSize, debug, storage) {
     this.maxSize_ = maxSize || -1;
     this.debug_ = debug || false;
-    this.items_ = storage || new Cache.BasicCacheStorage();
-    this.count_ = 0;
+    this.storage_ = storage || new Cache.BasicCacheStorage();
 
     this.fillFactor_ = .75;
 
@@ -60,15 +59,23 @@ function Cache(maxSize, debug, storage) {
  */
 Cache.BasicCacheStorage = function() {
   this.items_ = {};
+  this.count_ = 0;
 }
 Cache.BasicCacheStorage.prototype.get = function(key) {
   return this.items_[key];
 }
 Cache.BasicCacheStorage.prototype.set = function(key, value) {
+  if (typeof this.get(key) === "undefined")
+    this.count_++;
   this.items_[key] = value;
+}
+Cache.BasicCacheStorage.prototype.size = function(key, value) {
+  return this.count_;
 }
 Cache.BasicCacheStorage.prototype.remove = function(key) {
   var item = this.get(key);
+  if (typeof item !== "undefined")
+    this.count_--;
   delete this.items_[key];
   return item;
 }
@@ -106,6 +113,9 @@ Cache.LocalStorageCacheStorage.prototype.get = function(key) {
 Cache.LocalStorageCacheStorage.prototype.set = function(key, value) {
   localStorage[this.prefix_ + key] = JSON.stringify(value);
 }
+Cache.LocalStorageCacheStorage.prototype.size = function(key, value) {
+  return this.keys().length;
+}
 Cache.LocalStorageCacheStorage.prototype.remove = function(key) {
   var item = this.get(key);
   delete localStorage[this.prefix_ + key];
@@ -127,7 +137,7 @@ Cache.LocalStorageCacheStorage.prototype.keys = function() {
 Cache.prototype.getItem = function(key) {
 
   // retrieve the item from the cache
-  var item = this.items_.get(key);
+  var item = this.storage_.get(key);
 
   if (item != null) {
     if (!this.isExpired_(item)) {
@@ -136,7 +146,7 @@ Cache.prototype.getItem = function(key) {
       item.lastAccessed = new Date().getTime();
     } else {
       // if the item is expired, remove it from the cache
-      this.removeItem_(key);
+      this.removeItem(key);
       item = null;
     }
   }
@@ -195,14 +205,14 @@ Cache._CacheItem = function(k, v, o) {
 Cache.prototype.setItem = function(key, value, options) {
 
   // add a new cache item to the cache
-  if (this.items_.get(key) != null) {
-    this.removeItem_(key);
+  if (this.storage_.get(key) != null) {
+    this.removeItem(key);
   }
   this.addItem_(new Cache._CacheItem(key, value, options));
   this.log_("Setting key " + key);
 
   // if the cache is full, purge it
-  if ((this.maxSize_ > 0) && (this.count_ > this.maxSize_)) {
+  if ((this.maxSize_ > 0) && (this.size() > this.maxSize_)) {
     var that = this;
     setTimeout(function() {
       that.purge_.call(that);
@@ -216,9 +226,9 @@ Cache.prototype.setItem = function(key, value, options) {
  */
 Cache.prototype.clear = function() {
   // loop through each item in the cache and remove it
-  var keys = this.items_.keys()
+  var keys = this.storage_.keys()
   for (var i = 0; i < keys.length; i++) {
-    this.removeItem_(keys[i]);
+    this.removeItem(keys[i]);
   }
   this.log_('Cache cleared');
 };
@@ -236,10 +246,10 @@ Cache.prototype.getStats = function() {
  * @return {string} Returns an HTML string representation of the cache.
  */
 Cache.prototype.toHtmlString = function() {
-  var returnStr = this.count_ + " item(s) in cache<br /><ul>";
-  var keys = this.items_.keys()
+  var returnStr = this.size() + " item(s) in cache<br /><ul>";
+  var keys = this.storage_.keys()
   for (var i = 0; i < keys.length; i++) {
-    var item = this.items_.get(keys[i]);
+    var item = this.storage_.get(keys[i]);
     returnStr = returnStr + "<li>" + item.key.toString() + " = " +
         item.value.toString() + "</li>";
   }
@@ -259,7 +269,7 @@ Cache.prototype.resize = function(newMaxSize) {
   this.maxSize_ = newMaxSize;
 
   if (newMaxSize > 0 && (oldMaxSize < 0 || newMaxSize < oldMaxSize)) {
-    if (this.count_ > newMaxSize) {
+    if (this.size() > newMaxSize) {
       // Cache needs to be purged as it does contain too much entries for the new size
       this.purge_();
     } // else if cache isn't filled up to the new limit nothing is to do
@@ -275,15 +285,15 @@ Cache.prototype.purge_ = function() {
   var tmparray = new Array();
   var purgeSize = Math.round(this.maxSize_ * this.fillFactor_);
   if (this.maxSize_ < 0)
-    purgeSize = this.count_ * this.fillFactor_;
+    purgeSize = this.size() * this.fillFactor_;
   // loop through the cache, expire items that should be expired
   // otherwise, add the item to an array
-  var keys = this.items_.keys();
+  var keys = this.storage_.keys();
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
-    var item = this.items_.get(key);
+    var item = this.storage_.get(key);
     if (this.isExpired_(item)) {
-      this.removeItem_(key);
+      this.removeItem(key);
     } else {
       tmparray.push(item);
     }
@@ -301,7 +311,7 @@ Cache.prototype.purge_ = function() {
     // remove items from the end of the array
     while (tmparray.length > purgeSize) {
       var ritem = tmparray.pop();
-      this.removeItem_(ritem.key);
+      this.removeItem(ritem.key);
     }
   }
   this.log_('Purged cached');
@@ -316,8 +326,7 @@ Cache.prototype.purge_ = function() {
 Cache.prototype.addItem_ = function(item, attemptedAlready) {
   var cache = this;
   try {
-    this.items_.set(item.key, item);
-    this.count_++;
+    this.storage_.set(item.key, item);
   } catch(err) {
     if (attemptedAlready) {
       this.log_('Failed setting again, giving up: ' + err.toString());
@@ -335,18 +344,22 @@ Cache.prototype.addItem_ = function(item, attemptedAlready) {
  * @param {String} key The key of the item to remove
  * @private
  */
-Cache.prototype.removeItem_ = function(key) {
-  var item = this.items_.remove(key);
-  this.count_--;
+Cache.prototype.removeItem = function(key) {
+  var item = this.storage_.remove(key);
   this.log_("removed key " + key);
 
   // if there is a callback function, call it at the end of execution
-  if (item.options.callback != null) {
+  if (item && item.options && item.options.callback) {
     setTimeout(function() {
       item.options.callback.call(null, item.key, item.value);
     }, 0);
   }
+  return item ? item.value : null;
 };
+
+Cache.prototype.size = function() {
+  return this.storage_.size();
+}
 
 
 /**

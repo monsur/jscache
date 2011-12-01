@@ -10,15 +10,21 @@ function testBasicCaching(done) {
   cache.setItem("foo", "bar");
   assertEqual(cache.getItem("foo"), "bar");
   assertEqual(cache.getItem("missing"), null);
+  assertEqual(cache.removeItem("missing"), null);
   var stats = cache.getStats();
   assertEqual(stats.hits, 1);
   assertEqual(stats.misses, 1);
   assertEqual(cache.toHtmlString(), "1 item(s) in cache<br /><ul><li>foo = bar</li></ul>");
-  assertEqual(cache.count_, 1);
+  assertEqual(cache.size(), 1);
 
+
+  cache.setItem("foo2", "bar2");
+  assertEqual(cache.size(), 2);
+  assertEqual(cache.removeItem("foo"), "bar");
+  assertEqual(cache.size(), 1);
   cache.clear();
   assertEqual(cache.getItem("foo"), null);
-  assertEqual(cache.count_, 0);
+  assertEqual(cache.size(), 0);
   done();
 }
 
@@ -69,14 +75,14 @@ function testLRUExpiration(success) {
     assertEqual(cache.getItem("foo2"), "bar2");
 
     cache.setItem("foo3", "bar3");
-    assertEqual(cache.count_, 3);
+    assertEqual(cache.size(), 3);
 
     // Allow time for cache to be purged
     setTimeout(function() {
       assertEqual(cache.getItem("foo1"), null);
       assertEqual(cache.getItem("foo2"), "bar2");
       assertEqual(cache.getItem("foo3"), "bar3");
-      assertEqual(cache.count_, 2);
+      assertEqual(cache.size(), 2);
       success();
     }, TIMEOUT)
   }, TIMEOUT)
@@ -94,14 +100,14 @@ function testPriorityExpiration(success) {
 
     setTimeout(function() {
       cache.setItem("foo3", "bar3");
-      assertEqual(cache.count_, 3);
+      assertEqual(cache.size(), 3);
 
       // Allow time for cache to be purged
       setTimeout(function() {
         assertEqual(cache.getItem("foo1"), "bar1");
         assertEqual(cache.getItem("foo2"), null);
         assertEqual(cache.getItem("foo3"), "bar3");
-        assertEqual(cache.count_, 2);
+        assertEqual(cache.size(), 2);
         success();
       }, TIMEOUT)
     }, TIMEOUT)
@@ -136,12 +142,12 @@ function testFillFactor(success) {
   for (var i = 1; i <= 100; i++) {
     cache.setItem("foo" + i, "bar" + i);
   }
-  assertEqual(cache.count_, 100);
+  assertEqual(cache.size(), 100);
   setTimeout(function() {
-    assertEqual(cache.count_, 100);
+    assertEqual(cache.size(), 100);
     cache.setItem("purge", "do it");
     setTimeout(function() {
-      assertEqual(cache.count_, 75);
+      assertEqual(cache.size(), 75);
       success();
     }, TIMEOUT)
   }, TIMEOUT)
@@ -157,25 +163,38 @@ function testLocalStorageCache(success) {
   assertEqual(stats.hits, 1);
   assertEqual(stats.misses, 1);
   assertEqual(cache.toHtmlString(), "1 item(s) in cache<br /><ul><li>foo1 = bar1</li></ul>");
-  assertEqual(cache.count_, 1);
+  assertEqual(cache.size(), 1);
   assertEqual(localStorage.length, 1);
 
   setTimeout(function() {
     cache.setItem("foo2", "bar2");
     cache.setItem("foo3", "bar3");
     setTimeout(function() {
-      assertEqual(cache.count_, 2);
+      assertEqual(cache.size(), 2);
       assertEqual(localStorage.length, 2);
 
       cache.clear();
       assertEqual(cache.getItem("foo1"), null);
       assertEqual(cache.getItem("foo2"), null);
       assertEqual(cache.getItem("foo3"), null);
-      assertEqual(cache.count_, 0);
+      assertEqual(cache.size(), 0);
       assertEqual(localStorage.length, 0);
       success();
     }, TIMEOUT)
   }, TIMEOUT)
+}
+
+function testLocalStorageExisting(success) {
+  localStorage.clear();
+  var cache = new Cache(-1, false, new Cache.LocalStorageCacheStorage());
+  cache.setItem("foo", "bar");
+  var cache2 = new Cache(-1, false, new Cache.LocalStorageCacheStorage());
+  assertEqual(cache.size(), 1);
+  assertEqual(cache2.size(), 1);
+  cache.removeItem("foo");
+  assertEqual(cache.size(), 0);
+  assertEqual(cache2.size(), 0);
+  success();
 }
 
 function testLocalStorageCacheMaxSize(success) {
@@ -198,7 +217,6 @@ function testLocalStorageCacheMaxSize(success) {
   }
 }
 
-
 function runTests(tests) {
   if (tests.length === 0) return console.log("All tests passed!");
   var next = tests.shift();
@@ -217,5 +235,6 @@ runTests([
   testResize,
   testFillFactor,
   testLocalStorageCache,
+  testLocalStorageExisting,
   testLocalStorageCacheMaxSize
 ]);
