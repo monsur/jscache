@@ -341,7 +341,7 @@ Cache.prototype.removeItem_ = function(key) {
   var item = this.storage_.remove(key);
 
   // if there is a callback function, call it at the end of execution
-  if (item.options.callback != null) {
+  if (item && item.options && item.options.callback) {
     setTimeout(function() {
       item.options.callback.call(null, item.key, item.value);
     }, 0);
