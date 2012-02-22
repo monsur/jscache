@@ -6,6 +6,8 @@ Just a simple LRU cache written in javascript. It is loosely based on ASP.NET's 
 How It Works
 ------------
 
+		var Cache = require('leru');
+
 		// Create a new cache item
 		// The constructor accepts an optional integer
 		// parameter which places a limit on how many
@@ -22,7 +24,7 @@ How It Works
 		//                         the last cache access after which the item
 		//                         should expire
 		//      priority: How important it is to leave this item in the cache.
-		//                You can use the values CachePriority.LOW, .NORMAL, or
+		//                You can use the values Cache.Priority.LOW, .NORMAL, or
 		//                .HIGH, or you can just use an integer.  Note that
 		//                placing a priority on an item does not guarantee
 		//                it will remain in cache.  It can still be purged if
@@ -32,8 +34,8 @@ How It Works
 		//                are passed as parameters to the callback function.
 		cache.setItem("A", "1", {expirationAbsolute: null,
 		                         expirationSliding: 60,
-		                         priority: CachePriority.HIGH,
-		                         callback: function(k, v) { alert('removed ' + k); }
+		                         priority: Cache.Priority.HIGH,
+		                         callback: function(k, v) { console.log('removed ' + k); }
 		                        });
 
 		// retrieve an item from the cache
@@ -75,6 +77,7 @@ which is currently 5MB on Chrome/Safari.
 
 History
 -------
+* 2/22/2012: Forked from Monsur Hossain repo and ported to Node.js.
 * 11/29/2011: Thanks to Andrew Carman for tests, pluggable backends, localStorage persistance, and bug fixes.
 * 1/8/2011: Migrated project to GitHub.
 * 1/20/2010: Thanks to Andrej Arn for some syntax updates.

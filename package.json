@@ -1,0 +1,21 @@
+{
+  "author": "Ricardo Stuven <rstuven@gmail.com>",
+  "name": "leru",
+  "description": "Node.js LRU Cache",
+  "version": "0.0.0",
+  "homepage": "https://github.com/rstuven/node-leru",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rstuven/node-leru.git"
+  },
+  "engines": {
+    "node": "~0.6.1"
+  },
+  "directories": {
+    "lib": "./lib"
+  },
+  "main": "./lib/cache",
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {}
+}
