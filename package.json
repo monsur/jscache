@@ -18,8 +18,9 @@
   "dependencies": {},
   "devDependencies": {
     "mocha": "*",
-    "should": "*",
+    "chai": "*",
     "sinon": "*",
+    "sinon-chai": "*",
     "coffee-script": "*"
   },
   "optionalDependencies": {},

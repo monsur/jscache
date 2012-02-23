@@ -1,6 +1,8 @@
 Cache = require '../'
-should = require 'should'
 sinon = require 'sinon'
+chai = require 'chai'
+chai.use require 'sinon-chai'
+should = chai.should()
 
 TIMEOUT = 50
 timeout = (to, fn) =>
@@ -34,7 +36,6 @@ describe 'Cache', ->
         cache.clear()
         should.not.exist cache.getItem("foo")
         cache.size().should.equal 0
-
 
     it 'AbsoluteExpiration', (success) ->
         cache = new Cache
@@ -149,6 +150,16 @@ describe 'Cache', ->
 
         @clock.tick TIMEOUT*2
 
+    it 'OnPurge', ->
+        cache = new Cache
+        spy = sinon.spy()
+        cache.setItem "foo", "bar",
+            onPurge: spy
+        cache.removeItem "foo"
+
+        @clock.tick 1
+
+        spy.should.have.been.calledWith "foo", "bar"
 
 ###
 
