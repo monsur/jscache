@@ -1,7 +1,7 @@
-JavaScript LRU Cache
+LRU Cache for Node.js
 ====================
 
-Just a simple LRU cache written in javascript. It is loosely based on ASP.NET's Cache, and includes many caching options such as absolute expiration, sliding expiration, cache priority, and a callback function. It can be used to cache data locally in the user's browser, saving a server roundtrip in AJAX heavy applications.
+This is a fork of Monsur Hossain's jscache for browsers, which is loosely based on ASP.NET's Cache, and includes many caching options such as absolute expiration, sliding expiration, cache priority, and a callback function on purge.
 
 How It Works
 ------------
