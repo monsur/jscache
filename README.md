@@ -29,13 +29,13 @@ How It Works
 		//                placing a priority on an item does not guarantee
 		//                it will remain in cache.  It can still be purged if
 		//                an expiration is hit, or if the cache is full.
-		//      callback: A function that gets called when the item is purged
-		//                from cache.  The key and value of the removed item
-		//                are passed as parameters to the callback function.
+		//      onPurge: A function that gets called when the item is purged
+		//               from cache.  The key and value of the removed item
+		//               are passed as parameters to the callback function.
 		cache.setItem("A", "1", {expirationAbsolute: null,
 		                         expirationSliding: 60,
 		                         priority: Cache.Priority.HIGH,
-		                         callback: function(k, v) { console.log('removed ' + k); }
+		                         onPurge: function(k, v) { console.log('removed ' + k); }
 		                        });
 
 		// retrieve an item from the cache
