@@ -1,12 +1,12 @@
 {
   "author": "Ricardo Stuven <rstuven@gmail.com>",
-  "name": "leru",
-  "description": "Node.js LRU Cache",
+  "name": "cachai",
+  "description": "LRU Cache for Node.js",
   "version": "0.0.0",
-  "homepage": "https://github.com/rstuven/node-leru",
+  "homepage": "https://github.com/rstuven/node-cachai",
   "repository": {
     "type": "git",
-    "url": "git://github.com/rstuven/node-leru.git"
+    "url": "git://github.com/rstuven/node-cachai.git"
   },
   "engines": {
     "node": "~0.6.1"

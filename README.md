@@ -6,7 +6,7 @@ This is a fork of Monsur Hossain's jscache for browsers, which is loosely based 
 How It Works
 ------------
 
-		var Cache = require('leru');
+		var Cache = require('cachai');
 
 		// Create a new cache item
 		// The constructor accepts an optional integer
@@ -55,24 +55,6 @@ How It Works
 
 		// clears all items from the cache
 		cache.clear();
-
-
-LocalStorage Persistance
-------------------------
-
-You can have the cache persist its values to localStorage on browsers that support it.
-To do this simply create the cache with a different storage backend like:
-
-    var cache = new Cache(-1, false, new Cache.LocalStorageCacheStorage());
-
-All values have to be JSON stringifiable, which means the callback option to setItem won't work.
-
-If you want to have multiple independent caches, pass in a namespace argument, like:
-
-    var cache = new Cache(-1, false, new Cache.LocalStorageCacheStorage('myNameSpace'));
-
-If -1 is used for the cache size, the cache will be limited to the size of localStorage,
-which is currently 5MB on Chrome/Safari.
 
 
 History
