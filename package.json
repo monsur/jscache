@@ -16,6 +16,14 @@
   },
   "main": "./lib/cache",
   "dependencies": {},
-  "devDependencies": {},
-  "optionalDependencies": {}
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*",
+    "sinon": "*",
+    "coffee-script": "*"
+  },
+  "optionalDependencies": {},
+  "scripts": {
+    "test": "mocha ./test/*"
+  }
 }
