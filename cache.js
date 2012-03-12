@@ -106,24 +106,24 @@ Cache.LocalStorageCacheStorage = function(namespace) {
   this.regexp_ = new RegExp('^' + escapedPrefix)
 }
 Cache.LocalStorageCacheStorage.prototype.get = function(key) {
-  var item = localStorage[this.prefix_ + key];
+  var item = window.localStorage[this.prefix_ + key];
   if (item) return JSON.parse(item);
   return null;
 }
 Cache.LocalStorageCacheStorage.prototype.set = function(key, value) {
-  localStorage[this.prefix_ + key] = JSON.stringify(value);
+  window.localStorage[this.prefix_ + key] = JSON.stringify(value);
 }
 Cache.LocalStorageCacheStorage.prototype.size = function(key, value) {
   return this.keys().length;
 }
 Cache.LocalStorageCacheStorage.prototype.remove = function(key) {
   var item = this.get(key);
-  delete localStorage[this.prefix_ + key];
+  delete window.localStorage[this.prefix_ + key];
   return item;
 }
 Cache.LocalStorageCacheStorage.prototype.keys = function() {
   var ret = [], p;
-  for (p in localStorage) {
+  for (p in window.localStorage) {
     if (p.match(this.regexp_)) ret.push(p.replace(this.prefix_, ''));
   };
   return ret;
