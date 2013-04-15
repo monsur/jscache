@@ -22,7 +22,7 @@ How It Works
 		//                         the last cache access after which the item
 		//                         should expire
 		//      priority: How important it is to leave this item in the cache.
-		//                You can use the values CachePriority.LOW, .NORMAL, or
+		//                You can use the values Cache.Priority.LOW, .NORMAL, or
 		//                .HIGH, or you can just use an integer.  Note that
 		//                placing a priority on an item does not guarantee
 		//                it will remain in cache.  It can still be purged if
@@ -32,7 +32,7 @@ How It Works
 		//                are passed as parameters to the callback function.
 		cache.setItem("A", "1", {expirationAbsolute: null,
 		                         expirationSliding: 60,
-		                         priority: CachePriority.HIGH,
+		                         priority: Cache.Priority.HIGH,
 		                         callback: function(k, v) { alert('removed ' + k); }
 		                        });
 
