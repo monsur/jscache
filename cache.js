@@ -24,15 +24,8 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/**
- * An easier way to refer to the priority of a cache item
- * @enum {number}
- */
-var CachePriority = {
-  'LOW': 1,
-  'NORMAL': 2,
-  'HIGH': 4
-};
+// Avoid polluting the global namespace if we're using a module loader
+(function(){
 
 /**
  * Creates a new Cache object.
@@ -52,6 +45,16 @@ function Cache(maxSize, debug, storage) {
     this.stats_['misses'] = 0;
     this.log_('Initialized cache with size ' + maxSize);
 }
+
+/**
+ * An easier way to refer to the priority of a cache item
+ * @enum {number}
+ */
+Cache.Priority = {
+  'LOW': 1,
+  'NORMAL': 2,
+  'HIGH': 4
+};
 
 /**
  * Basic in memory cache storage backend.
@@ -175,7 +178,7 @@ Cache._CacheItem = function(k, v, o) {
       o.expirationAbsolute = o.expirationAbsolute.getTime();
     }
     if (!o.priority) {
-      o.priority = CachePriority.NORMAL;
+      o.priority = Cache.Priority.NORMAL;
     }
     this.options = o;
     this.lastAccessed = new Date().getTime();
@@ -193,7 +196,7 @@ Cache._CacheItem = function(k, v, o) {
  *                         the last cache access after which the item
  *                         should expire
  *      priority: How important it is to leave this item in the cache.
- *                You can use the values CachePriority.LOW, .NORMAL, or
+ *                You can use the values Cache.Priority.LOW, .NORMAL, or
  *                .HIGH, or you can just use an integer.  Note that
  *                placing a priority on an item does not guarantee
  *                it will remain in cache.  It can still be purged if
@@ -398,6 +401,15 @@ Cache.prototype.log_ = function(msg) {
   }
 };
 
-if (typeof module !== "undefined") {
+// Establish the root object, `window` in the browser, or `global` on the server.
+var root = this;
+
+if (typeof module !== "undefined" && module.exports) {
   module.exports = Cache;
+} else if (typeof define == "function" && define.amd) {
+  define(function() { return Cache; });
+} else {
+  root.Cache = Cache;
 }
+
+})();

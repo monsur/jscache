@@ -91,7 +91,7 @@ function testLRUExpiration(success) {
 function testPriorityExpiration(success) {
   var cache = new Cache(2);
   cache.setItem("foo1", "bar1", {
-    priority: CachePriority.HIGH
+    priority: Cache.Priority.HIGH
   });
   cache.setItem("foo2", "bar2");
   setTimeout(function() {
