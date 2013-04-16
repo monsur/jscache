@@ -217,6 +217,24 @@ function testLocalStorageCacheMaxSize(success) {
   }
 }
 
+function testRemoveWhere(success) {
+	var cache = new Cache();
+	cache.setItem('Adam', 1);
+	cache.setItem('Andrew', 2);
+	cache.setItem('Bob', 4);
+	
+	var itemSum = 0;
+	
+	// Remove items if they key starts with 'A'
+	cache.removeWhere(function(key, value) {
+		itemSum += value;
+		return /^A/.test(key);
+	});
+	
+	assertEqual(cache.size(), 1);
+	assertEqual(itemSum, 7);
+}
+
 function runTests(tests) {
   if (tests.length === 0) return console.log("All tests passed!");
   var next = tests.shift();
@@ -236,5 +254,6 @@ runTests([
   testFillFactor,
   testLocalStorageCache,
   testLocalStorageExisting,
-  testLocalStorageCacheMaxSize
+  testLocalStorageCacheMaxSize,
+  testRemoveWhere
 ]);

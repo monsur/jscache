@@ -44,6 +44,11 @@ How It Works
 		// Remove and return an item from the cache.
 		// If the item doesn't exist it returns null.
 		cache.removeItem("A");
+		
+		// Removes items from the cache which pass the provided test.
+		// If the test function returns true, the item will be removed.
+		// E.g., Remove keys which start with 'RemoveMe'
+		cache.removeWhere(function(k, v) { return /^RemoveMe/.test(k); });
 
 		// Returns the number of items in the cache.
 		cache.size();
@@ -53,7 +58,6 @@ How It Works
 
 		// clears all items from the cache
 		cache.clear();
-
 
 LocalStorage Persistance
 ------------------------

@@ -360,6 +360,25 @@ Cache.prototype.removeItem = function(key) {
   return item ? item.value : null;
 };
 
+/**
+ * Scan through each item in the cache and remove that item if it passes the
+ * supplied test.
+ * @param {Function} test   A test to determine if the given item should be removed.
+ *							The item will be removed if test(key, value) returns true.
+ * @private
+ */
+Cache.prototype.removeWhere = function(test) {
+	// Get a copy of the keys array - it won't be modified when we remove items from storage
+	var keys = this.storage_.keys();
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var item = this.storage_.get(key);
+		if(test(key, item.value) === true) {
+			this.removeItem(key);
+		}
+	}
+};
+
 Cache.prototype.size = function() {
   return this.storage_.size();
 }
