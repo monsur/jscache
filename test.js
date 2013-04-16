@@ -232,6 +232,7 @@ function testRemoveWhere(success) {
 	});
 	
 	assertEqual(cache.size(), 1);
+	assertEqual(cache.getItem('Bob'), 4);
 	assertEqual(itemSum, 7);
 }
 
