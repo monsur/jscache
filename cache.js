@@ -324,7 +324,6 @@ Cache.prototype.purge_ = function() {
 /**
  * Add an item to the cache.
  * @param {Object} item The cache item to add.
- * @private
  */
 Cache.prototype.addItem_ = function(item, attemptedAlready) {
   var cache = this;

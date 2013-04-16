@@ -232,6 +232,8 @@ function testRemoveWhere(success) {
 	});
 	
 	assertEqual(cache.size(), 1);
+	assertEqual(cache.getItem('Adam'), null);
+	assertEqual(cache.getItem('Andrew'), null);
 	assertEqual(cache.getItem('Bob'), 4);
 	assertEqual(itemSum, 7);
 }
