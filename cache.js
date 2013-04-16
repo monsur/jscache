@@ -324,6 +324,7 @@ Cache.prototype.purge_ = function() {
 /**
  * Add an item to the cache.
  * @param {Object} item The cache item to add.
+ * @private
  */
 Cache.prototype.addItem_ = function(item, attemptedAlready) {
   var cache = this;
@@ -344,7 +345,6 @@ Cache.prototype.addItem_ = function(item, attemptedAlready) {
 /**
  * Remove an item from the cache, call the callback function (if it exists).
  * @param {String} key The key of the item to remove
- * @private
  */
 Cache.prototype.removeItem = function(key) {
   var item = this.storage_.remove(key);
@@ -364,7 +364,6 @@ Cache.prototype.removeItem = function(key) {
  * supplied test.
  * @param {Function} test   A test to determine if the given item should be removed.
  *							The item will be removed if test(key, value) returns true.
- * @private
  */
 Cache.prototype.removeWhere = function(test) {
 	// Get a copy of the keys array - it won't be modified when we remove items from storage
