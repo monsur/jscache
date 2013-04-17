@@ -79,7 +79,7 @@ which is currently 5MB on Chrome/Safari.
 
 History
 -------
-* 4/16/2013: Thanks to Nick Young for AMD module support and the removeWhere() method.
+* 4/16/2013: Thanks to [Nick Young](https://github.com/nickwb) for AMD module support and the removeWhere() method.
 * 11/29/2011: Thanks to Andrew Carman for tests, pluggable backends, localStorage persistance, and bug fixes.
 * 1/8/2011: Migrated project to GitHub.
 * 1/20/2010: Thanks to Andrej Arn for some syntax updates.
