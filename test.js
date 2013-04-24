@@ -91,7 +91,7 @@ function testLRUExpiration(success) {
 function testPriorityExpiration(success) {
   var cache = new Cache(2);
   cache.setItem("foo1", "bar1", {
-    priority: CachePriority.HIGH
+    priority: Cache.Priority.HIGH
   });
   cache.setItem("foo2", "bar2");
   setTimeout(function() {
@@ -217,6 +217,91 @@ function testLocalStorageCacheMaxSize(success) {
   }
 }
 
+function testSessionStorageCache(success) {
+  sessionStorage.clear();
+  var cache = new Cache(2, false, new Cache.SessionStorageCacheStorage());
+  cache.setItem("foo1", "bar1");
+  assertEqual(cache.getItem("foo1"), "bar1");
+  assertEqual(cache.getItem("missing"), null);
+  var stats = cache.getStats();
+  assertEqual(stats.hits, 1);
+  assertEqual(stats.misses, 1);
+  assertEqual(cache.toHtmlString(), "1 item(s) in cache<br /><ul><li>foo1 = bar1</li></ul>");
+  assertEqual(cache.size(), 1);
+  assertEqual(sessionStorage.length, 1);
+
+  setTimeout(function() {
+    cache.setItem("foo2", "bar2");
+    cache.setItem("foo3", "bar3");
+    setTimeout(function() {
+      assertEqual(cache.size(), 2);
+      assertEqual(sessionStorage.length, 2);
+
+      cache.clear();
+      assertEqual(cache.getItem("foo1"), null);
+      assertEqual(cache.getItem("foo2"), null);
+      assertEqual(cache.getItem("foo3"), null);
+      assertEqual(cache.size(), 0);
+      assertEqual(sessionStorage.length, 0);
+      success();
+    }, TIMEOUT)
+  }, TIMEOUT)
+}
+
+function testSessionStorageExisting(success) {
+  sessionStorage.clear();
+  var cache = new Cache(-1, false, new Cache.SessionStorageCacheStorage());
+  cache.setItem("foo", "bar");
+  var cache2 = new Cache(-1, false, new Cache.SessionStorageCacheStorage());
+  assertEqual(cache.size(), 1);
+  assertEqual(cache2.size(), 1);
+  cache.removeItem("foo");
+  assertEqual(cache.size(), 0);
+  assertEqual(cache2.size(), 0);
+  success();
+}
+
+function testSessionStorageCacheMaxSize(success) {
+  sessionStorage.clear();
+  var cache = new Cache(-1, false, new Cache.SessionStorageCacheStorage());
+  var count = 0;
+  console.log('Attempting to max out sessionStorage, this may take a while...')
+  while (true) {
+    count += 1;
+    var startSize = sessionStorage.length;
+    if (count % 500 === 0) {
+      console.log('   added ' + count + ' items')
+    }
+    cache.setItem("somelongerkeyhere" + count, Array(200).join("bar") + count);
+    if (sessionStorage.length - startSize < 0) {
+      console.log('   added ' + count + ' items')
+      sessionStorage.clear();
+      return success();
+    }
+  }
+}
+
+function testRemoveWhere(success) {
+  var cache = new Cache();
+  cache.setItem('Adam', 1);
+  cache.setItem('Andrew', 2);
+  cache.setItem('Bob', 4);
+  
+  var itemSum = 0;
+  
+  // Remove items if they key starts with 'A'
+  cache.removeWhere(function(key, value) {
+    itemSum += value;
+    return /^A/.test(key);
+  });
+  
+  assertEqual(cache.size(), 1);
+  assertEqual(cache.getItem('Adam'), null);
+  assertEqual(cache.getItem('Andrew'), null);
+  assertEqual(cache.getItem('Bob'), 4);
+  assertEqual(itemSum, 7);
+}
+
 function runTests(tests) {
   if (tests.length === 0) return console.log("All tests passed!");
   var next = tests.shift();
@@ -236,5 +321,9 @@ runTests([
   testFillFactor,
   testLocalStorageCache,
   testLocalStorageExisting,
-  testLocalStorageCacheMaxSize
+  testLocalStorageCacheMaxSize,
+  testSessionStorageCache,
+  testSessionStorageExisting,
+  testSessionStorageCacheMaxSize,
+  testRemoveWhere
 ]);
