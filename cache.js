@@ -152,7 +152,7 @@ Cache.TiStorage.prototype.size = function(key, value) {
 }
 Cache.TiStorage.prototype.remove = function(key) {
   var item = this.get(key);
-  delete Ti.App.Properties.removeProperty(this.prefix_ + key);
+  Ti.App.Properties.removeProperty(this.prefix_ + key);
   return item;
 }
 Cache.TiStorage.prototype.keys = function() {
@@ -460,7 +460,5 @@ if (typeof module !== "undefined" && module.exports) {
 } else {
   root.Cache = Cache;
 }
-
-module.exports = Cache;
 
 })();
