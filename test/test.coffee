@@ -4,9 +4,7 @@ chai = require 'chai'
 chai.use require 'sinon-chai'
 should = chai.should()
 
-INTERVAL = 5
-defer = (i, fn) ->
-  setTimeout fn, INTERVAL*i
+INTERVAL = 5000
 
 describe 'Cache', ->
 
@@ -75,22 +73,17 @@ describe 'Cache', ->
 
       @cache.getItem("foo").should.equal "bar"
 
-    it 'should expire', (done) ->
-      defer 3, =>
-        should.not.exist @cache.getItem("foo")
-        done()
-
+    it 'should expire', ->
       @clock.tick INTERVAL*3
+      should.not.exist @cache.getItem("foo")
 
     it 'should not expire', ->
-      defer 1, =>
-        @cache.getItem("foo").should.equal "bar"
-
-      @clock.tick INTERVAL*3
+      @clock.tick INTERVAL
+      @cache.getItem("foo").should.equal "bar"
 
   describe 'sliding expiration', ->
 
-    it 'should expire', (done) ->
+    it 'should expire', ->
       cache = new Cache
 
       cache.setItem "foo", "bar",
@@ -98,103 +91,100 @@ describe 'Cache', ->
 
       cache.getItem("foo").should.equal "bar"
 
-      defer 1, ->
-        cache.getItem("foo").should.equal "bar"
-        defer 1, ->
-          cache.getItem("foo").should.equal "bar"
-          defer 1, ->
-            cache.getItem("foo").should.equal "bar"
-            defer 3, ->
-              should.not.exist cache.getItem("foo")
-              done()
-
-      @clock.tick INTERVAL*6
+      @clock.tick INTERVAL
+      cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL
+      cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL
+      cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL*3
+      should.not.exist cache.getItem("foo")
 
   describe 'LRU expiration', ->
 
-    it 'should expire', (done) ->
+    it 'should expire', ->
       cache = new Cache 2
       cache.setItem "foo1", "bar1"
       cache.setItem "foo2", "bar2"
-      defer 1, ->
-        # Access an item so foo1 will be the LRU
-        cache.getItem("foo2").should.equal "bar2"
 
-        cache.setItem "foo3", "bar3"
-        cache.size().should.equal 3
+      @clock.tick INTERVAL
 
-        # Allow time for cache to be purged
-        defer 1, ->
-          should.not.exist cache.getItem("foo1")
-          cache.getItem("foo2").should.equal "bar2"
-          cache.getItem("foo3").should.equal "bar3"
-          cache.size().should.equal 2
-          done()
+      # Access an item so foo1 will be the LRU
+      cache.getItem("foo2").should.equal "bar2"
 
-      @clock.tick INTERVAL*2
+      cache.setItem "foo3", "bar3"
+      cache.size().should.equal 3
+
+      # Allow time for cache to be purged
+      @clock.tick INTERVAL
+
+      should.not.exist cache.getItem("foo1")
+      cache.getItem("foo2").should.equal "bar2"
+      cache.getItem("foo3").should.equal "bar3"
+      cache.size().should.equal 2
 
   describe 'priority expiration', ->
 
-    it 'should expire', (done) ->
+    it 'should expire', ->
       cache = new Cache 2
       cache.setItem "foo1", "bar1",
           priority: Cache.Priority.HIGH
 
       cache.setItem "foo2", "bar2"
-      defer 1, ->
-        # Access an item so foo1 will be the LRU
-        cache.getItem("foo2").should.equal "bar2"
 
-        defer 1, ->
-          cache.setItem "foo3", "bar3"
-          cache.size().should.equal 3
+      @clock.tick INTERVAL
 
-          # Allow time for cache to be purged
-          defer 1, ->
-            cache.getItem("foo1").should.equal "bar1"
-            should.not.exist cache.getItem("foo2")
-            cache.getItem("foo3").should.equal "bar3"
-            cache.size().should.equal 2
-            done()
+      # Access an item so foo1 will be the LRU
+      cache.getItem("foo2").should.equal "bar2"
 
-      @clock.tick INTERVAL*3
+      @clock.tick INTERVAL
+
+      cache.setItem "foo3", "bar3"
+      cache.size().should.equal 3
+
+      # Allow time for cache to be purged
+      @clock.tick INTERVAL
+
+      cache.getItem("foo1").should.equal "bar1"
+      should.not.exist cache.getItem("foo2")
+      cache.getItem("foo3").should.equal "bar3"
+      cache.size().should.equal 2
 
   describe 'sizing', ->
 
-    it 'should resize', (done) ->
+    it 'should resize', ->
       cache = new Cache
       cache.setItem "foo1", "bar1"
-      defer 1, ->
-        cache.setItem "foo2", "bar2"
-        defer 1, ->
-          cache.setItem "foo3", "bar3"
-          cache.resize 2
-          should.not.exist cache.getItem("foo1")
-          cache.getItem("foo2").should.equal "bar2"
-          defer 1, ->
-            cache.getItem("foo3").should.equal "bar3"
-            cache.resize 1
-            should.not.exist cache.getItem("foo1")
-            should.not.exist cache.getItem("foo2")
-            cache.getItem("foo3").should.equal "bar3"
-            done()
 
-      @clock.tick INTERVAL*3
+      @clock.tick INTERVAL
+      cache.setItem "foo2", "bar2"
 
-    it 'should use a fill factor', (done) ->
+      @clock.tick INTERVAL
+      cache.setItem "foo3", "bar3"
+      cache.resize 2
+      should.not.exist cache.getItem("foo1")
+      cache.getItem("foo2").should.equal "bar2"
+
+      @clock.tick INTERVAL
+      cache.getItem("foo3").should.equal "bar3"
+      cache.resize 1
+      should.not.exist cache.getItem("foo1")
+      should.not.exist cache.getItem("foo2")
+      cache.getItem("foo3").should.equal "bar3"
+
+    it 'should use a fill factor', ->
       cache = new Cache 100
       counter = 0
       cache.setItem "foo" + i, "bar" + i for i in [1..100]
 
       cache.size().should.equal 100
-      defer 1, ->
-        cache.size().should.equal 100
-        cache.setItem "purge", "do it"
-        defer 1, ->
-          cache.size().should.equal 75
-          done()
 
-      @clock.tick INTERVAL*2
+      @clock.tick INTERVAL
+      cache.size().should.equal 100
+      cache.setItem "purge", "do it"
+
+      @clock.tick INTERVAL
+      cache.size().should.equal 75
 
   it 'should callback on purge', ->
     cache = new Cache
@@ -203,7 +193,6 @@ describe 'Cache', ->
         onPurge: spy
     cache.removeItem "foo"
 
-    @clock.tick 1
+    @clock.tick INTERVAL
 
     spy.should.have.been.calledWith "foo", "bar"
-
