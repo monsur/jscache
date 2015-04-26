@@ -162,12 +162,14 @@ describe 'Cache', ->
       @clock.tick INTERVAL
       cache.setItem "foo3", "bar3"
       cache.resize 2
+      @clock.tick INTERVAL
       should.not.exist cache.getItem("foo1")
       cache.getItem("foo2").should.equal "bar2"
 
       @clock.tick INTERVAL
       cache.getItem("foo3").should.equal "bar3"
       cache.resize 1
+      @clock.tick INTERVAL
       should.not.exist cache.getItem("foo1")
       should.not.exist cache.getItem("foo2")
       cache.getItem("foo3").should.equal "bar3"
