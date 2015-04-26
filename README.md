@@ -1,5 +1,7 @@
-LRU Cache for Node.js
-====================
+cachai
+======
+
+> LRU Cache for Node.js
 
 [![Build Status](https://secure.travis-ci.org/rstuven/node-cachai.png?branch=master)](http://travis-ci.org/rstuven/node-cachai)
 [![Coverage Status](https://coveralls.io/repos/rstuven/node-cachai/badge.svg)](https://coveralls.io/r/rstuven/node-cachai)
@@ -9,8 +11,14 @@ LRU Cache for Node.js
 
 This is a fork of Monsur Hossain's jscache for browsers, which is loosely based on ASP.NET's Cache, and includes many caching options such as absolute expiration, sliding expiration, cache priority, and a callback function on purge.
 
-How It Works
-------------
+Install
+-------
+
+    npm install --save cachai
+
+
+Usage
+-----
 
 		var Cache = require('cachai');
 
