@@ -4,207 +4,211 @@ chai = require 'chai'
 chai.use require 'sinon-chai'
 should = chai.should()
 
-INTERVAL = 5
-defer = (i, fn) =>
-    setTimeout fn, INTERVAL*i
+INTERVAL = 5000
 
 describe 'Cache', ->
 
-    before ->
-        @clock = sinon.useFakeTimers()
+  before ->
+    @clock = sinon.useFakeTimers()
 
-    after ->
-        @clock.restore()
+  after ->
+    @clock.restore()
 
-    describe 'basics', ->
+  describe 'basics', ->
 
-        beforeEach ->
-            @cache = new Cache
+    beforeEach ->
+      @cache = new Cache
 
-        it 'should set and get item', ->
-            @cache.setItem "foo", "bar"
-            @cache.getItem("foo").should.equal "bar"
+    it 'should set and get item', ->
+      @cache.setItem "foo", "bar"
+      @cache.getItem("foo").should.equal "bar"
 
-        it 'should remove item', ->
-            should.not.exist @cache.getItem("foo")
-            @cache.setItem "foo", "bar"
-            should.exist @cache.getItem("foo")
-            should.exist @cache.removeItem("foo")
-            should.not.exist @cache.getItem("foo")
+    it 'should remove item', ->
+      should.not.exist @cache.getItem("foo")
+      @cache.setItem "foo", "bar"
+      should.exist @cache.getItem("foo")
+      should.exist @cache.removeItem("foo")
+      should.not.exist @cache.getItem("foo")
 
-        it 'should not get missing item', ->
-            should.not.exist @cache.getItem("missing")
+    it 'should not get missing item', ->
+      should.not.exist @cache.getItem("missing")
 
-        it 'should not remove missing item', ->
-            should.not.exist @cache.removeItem("missing")
+    it 'should not remove missing item', ->
+      should.not.exist @cache.removeItem("missing")
 
-        it 'should register stats', ->
-            @cache.setItem "foo", "bar"
-            @cache.getItem("foo")
-            @cache.getItem("missing")
-            @cache.removeItem("missing")
-            stats = @cache.getStats()
-            stats.hits.should.equal 1
-            stats.misses.should.equal 1
+    it 'should register stats', ->
+      @cache.setItem "foo", "bar"
+      @cache.getItem("foo")
+      @cache.getItem("missing")
+      @cache.removeItem("missing")
+      stats = @cache.getStats()
+      stats.hits.should.equal 1
+      stats.misses.should.equal 1
 
-        it 'should generate an HTML report', ->
-            @cache.setItem "foo", "bar"
-            @cache.toHtmlString().should.equal "1 item(s) in cache<br /><ul><li>foo = bar</li></ul>"
+    it 'should generate an HTML report', ->
+      @cache.setItem "foo", "bar"
+      @cache.toHtmlString().should
+        .equal "1 item(s) in cache<br /><ul><li>foo = bar</li></ul>"
 
-        it 'should register cache size', ->
-            @cache.setItem "foo", "bar"
-            @cache.size().should.equal 1
+    it 'should register cache size', ->
+      @cache.setItem "foo", "bar"
+      @cache.size().should.equal 1
 
-            @cache.setItem "foo2", "bar2"
-            @cache.size().should.equal 2
-            @cache.removeItem("foo")
-            @cache.size().should.equal 1
-            @cache.clear()
-            should.not.exist @cache.getItem("foo")
-            should.not.exist @cache.getItem("foo2")
-            @cache.size().should.equal 0
+      @cache.setItem "foo2", "bar2"
+      @cache.size().should.equal 2
+      @cache.removeItem("foo")
+      @cache.size().should.equal 1
+      @cache.clear()
+      should.not.exist @cache.getItem("foo")
+      should.not.exist @cache.getItem("foo2")
+      @cache.size().should.equal 0
 
-    describe 'absolute expiration', ->
+  describe 'absolute expiration', ->
 
-        beforeEach ->
-            @cache = new Cache
+    beforeEach ->
+      @cache = new Cache
 
-            @cache.setItem "foo", "bar",
-                expirationAbsolute: new Date(new Date().getTime() + INTERVAL*2)
+      @cache.setItem "foo", "bar",
+          expirationAbsolute: new Date(new Date().getTime() + INTERVAL*2)
 
-            @cache.getItem("foo").should.equal "bar"
+      @cache.getItem("foo").should.equal "bar"
 
-        it 'should expire', (done) ->
+    it 'should expire', ->
+      @clock.tick INTERVAL*3
+      should.not.exist @cache.getItem("foo")
 
-            defer 3, =>
-                should.not.exist @cache.getItem("foo")
-                done()
+    it 'should not expire', ->
+      @clock.tick INTERVAL
+      @cache.getItem("foo").should.equal "bar"
 
-            @clock.tick INTERVAL*3
+  describe 'sliding expiration', ->
 
-        it 'should not expire', ->
+    it 'should expire', ->
+      cache = new Cache
 
-            defer 1, =>
-                @cache.getItem("foo").should.equal "bar"
+      cache.setItem "foo", "bar",
+          expirationSliding: INTERVAL * 2 / 1000
 
-            @clock.tick INTERVAL*3
+      cache.getItem("foo").should.equal "bar"
 
-    describe 'sliding expiration', ->
+      @clock.tick INTERVAL
+      cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL
+      cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL
+      cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL*3
+      should.not.exist cache.getItem("foo")
 
-        it 'should expire', (done) ->
-            cache = new Cache
+  describe 'LRU expiration', ->
 
-            cache.setItem "foo", "bar",
-                expirationSliding: INTERVAL * 2 / 1000
+    it 'should expire', ->
+      cache = new Cache 2
+      cache.setItem "foo1", "bar1"
+      cache.setItem "foo2", "bar2"
 
-            cache.getItem("foo").should.equal "bar"
+      @clock.tick INTERVAL
 
-            defer 1, ->
-                cache.getItem("foo").should.equal "bar"
-                defer 1, ->
-                    cache.getItem("foo").should.equal "bar"
-                    defer 1, ->
-                        cache.getItem("foo").should.equal "bar"
-                        defer 3, ->
-                            should.not.exist cache.getItem("foo")
-                            done()
+      # Access an item so foo1 will be the LRU
+      cache.getItem("foo2").should.equal "bar2"
 
-            @clock.tick INTERVAL*6
+      cache.setItem "foo3", "bar3"
+      cache.size().should.equal 3
 
-    describe 'LRU expiration', ->
+      # Allow time for cache to be purged
+      @clock.tick INTERVAL
 
-        it 'should expire', (done) ->
-            cache = new Cache 2
-            cache.setItem "foo1", "bar1"
-            cache.setItem "foo2", "bar2"
-            defer 1, ->
-                # Access an item so foo1 will be the LRU
-                cache.getItem("foo2").should.equal "bar2"
+      should.not.exist cache.getItem("foo1")
+      cache.getItem("foo2").should.equal "bar2"
+      cache.getItem("foo3").should.equal "bar3"
+      cache.size().should.equal 2
 
-                cache.setItem "foo3", "bar3"
-                cache.size().should.equal 3
+  describe 'priority expiration', ->
 
-                # Allow time for cache to be purged
-                defer 1, ->
-                    should.not.exist cache.getItem("foo1")
-                    cache.getItem("foo2").should.equal "bar2"
-                    cache.getItem("foo3").should.equal "bar3"
-                    cache.size().should.equal 2
-                    done()
+    it 'should expire', ->
+      cache = new Cache 2
+      cache.setItem "foo1", "bar1",
+          priority: Cache.Priority.HIGH
 
-            @clock.tick INTERVAL*2
+      cache.setItem "foo2", "bar2"
 
-    describe 'priority expiration', ->
+      @clock.tick INTERVAL
 
-        it 'should expire', (done) ->
-            cache = new Cache 2
-            cache.setItem "foo1", "bar1",
-                priority: Cache.Priority.HIGH
+      # Access an item so foo1 will be the LRU
+      cache.getItem("foo2").should.equal "bar2"
 
-            cache.setItem "foo2", "bar2"
-            defer 1, ->
-                # Access an item so foo1 will be the LRU
-                cache.getItem("foo2").should.equal "bar2"
+      @clock.tick INTERVAL
 
-                defer 1, ->
-                    cache.setItem "foo3", "bar3"
-                    cache.size().should.equal 3
+      cache.setItem "foo3", "bar3"
+      cache.size().should.equal 3
 
-                    # Allow time for cache to be purged
-                    defer 1, ->
-                        cache.getItem("foo1").should.equal "bar1"
-                        should.not.exist cache.getItem("foo2")
-                        cache.getItem("foo3").should.equal "bar3"
-                        cache.size().should.equal 2
-                        done()
+      # Allow time for cache to be purged
+      @clock.tick INTERVAL
 
-            @clock.tick INTERVAL*3
+      cache.getItem("foo1").should.equal "bar1"
+      should.not.exist cache.getItem("foo2")
+      cache.getItem("foo3").should.equal "bar3"
+      cache.size().should.equal 2
 
-    describe 'sizing', ->
+  describe 'sizing', ->
 
-        it 'should resize', (done) ->
-            cache = new Cache
-            cache.setItem "foo1", "bar1"
-            defer 1, ->
-                cache.setItem "foo2", "bar2"
-                defer 1, ->
-                    cache.setItem "foo3", "bar3"
-                    cache.resize 2
-                    should.not.exist cache.getItem("foo1")
-                    cache.getItem("foo2").should.equal "bar2"
-                    defer 1, ->
-                        cache.getItem("foo3").should.equal "bar3"
-                        cache.resize 1
-                        should.not.exist cache.getItem("foo1")
-                        should.not.exist cache.getItem("foo2")
-                        cache.getItem("foo3").should.equal "bar3"
-                        done()
+    it 'should resize', ->
+      cache = new Cache
+      cache.setItem "foo1", "bar1"
 
-            @clock.tick INTERVAL*3
+      @clock.tick INTERVAL
+      cache.setItem "foo2", "bar2"
 
-        it 'should use a fill factor', (done) ->
-            cache = new Cache 100
-            counter = 0
-            cache.setItem "foo" + i, "bar" + i for i in [1..100]
+      @clock.tick INTERVAL
+      cache.setItem "foo3", "bar3"
+      cache.resize 2
+      @clock.tick INTERVAL
+      should.not.exist cache.getItem("foo1")
+      cache.getItem("foo2").should.equal "bar2"
 
-            cache.size().should.equal 100
-            defer 1, ->
-                cache.size().should.equal 100
-                cache.setItem "purge", "do it"
-                defer 1, ->
-                    cache.size().should.equal 75
-                    done()
+      @clock.tick INTERVAL
+      cache.getItem("foo3").should.equal "bar3"
+      cache.resize 1
+      @clock.tick INTERVAL
+      should.not.exist cache.getItem("foo1")
+      should.not.exist cache.getItem("foo2")
+      cache.getItem("foo3").should.equal "bar3"
 
-            @clock.tick INTERVAL*2
+    it 'should use a fill factor', ->
+      cache = new Cache 100
+      counter = 0
+      cache.setItem "foo" + i, "bar" + i for i in [1..100]
 
-    it 'should callback on purge', ->
-        cache = new Cache
-        spy = sinon.spy()
-        cache.setItem "foo", "bar",
-            onPurge: spy
-        cache.removeItem "foo"
+      cache.size().should.equal 100
 
-        @clock.tick 1
+      @clock.tick INTERVAL
+      cache.size().should.equal 100
+      cache.setItem "purge", "do it"
 
-        spy.should.have.been.calledWith "foo", "bar"
+      @clock.tick INTERVAL
+      cache.size().should.equal 75
 
+  it 'should callback on purge', ->
+    cache = new Cache
+    spy = sinon.spy()
+    cache.setItem "foo", "bar",
+        onPurge: spy
+    cache.removeItem "foo"
+
+    @clock.tick INTERVAL
+
+    spy.should.have.been.calledWith "foo", "bar"
+
+  describe 'when max size is exceeded', ->
+    it 'should purge once', ->
+      cache = new Cache(10)
+      spy = sinon.spy(cache, 'purge_')
+
+      for k in [0...20]
+        cache.setItem "foo#{k}", "bar#{k}"
+
+      @clock.tick()
+
+      cache.size().should.be.lessThan 10
+      spy.should.have.been.calledOnce
+      spy.restore()

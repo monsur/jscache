@@ -25,6 +25,6 @@
   },
   "optionalDependencies": {},
   "scripts": {
-    "test": "mocha -R spec"
+    "test": "mocha --compilers coffee:coffee-script/register -R spec"
   }
 }
