@@ -198,3 +198,17 @@ describe 'Cache', ->
     @clock.tick INTERVAL
 
     spy.should.have.been.calledWith "foo", "bar"
+
+  describe 'when max size is exceeded', ->
+    it 'should purge once', ->
+      cache = new Cache(10)
+      spy = sinon.spy(cache, 'purge_')
+
+      for k in [0...20]
+        cache.setItem "foo#{k}", "bar#{k}"
+
+      @clock.tick()
+
+      cache.size().should.be.lessThan 10
+      spy.should.have.been.calledOnce
+      spy.restore()
