@@ -30,7 +30,7 @@
     "test": "mocha -R spec",
     "test-cov": "mocha -r blanket -R html-cov > coverage.html",
     "test-cov-text": "mocha -r blanket -R mocha-text-cov",
-    "test-coveralls": "mocha -r blanket -R mocha-lcov-reporter | coveralls"
+    "test-coveralls": "mocha -r blanket -R mocha-lcov-reporter | coveralls || true"
   },
   "config": {
     "blanket": {
