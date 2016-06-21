@@ -1,6 +1,6 @@
 /*
 MIT LICENSE
-Copyright (c) 2007 Monsur Hossain (http://monsur.hossai.in)
+Copyright (c) 2007 Monsur Hossain (http://monsur.hossa.in)
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
