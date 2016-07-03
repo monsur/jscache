@@ -132,6 +132,38 @@ Cache.LocalStorageCacheStorage.prototype.keys = function() {
   return ret;
 }
 
+// Titanium OS Properties Storage
+Cache.TiStorage = function(namespace) {
+  this.prefix_ = 'cache-storage.' + (namespace || 'default') + '.';
+  // Regexp String Escaping from http://simonwillison.net/2006/Jan/20/escape/#p-6
+  var escapedPrefix = this.prefix_.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  this.regexp_ = new RegExp('^' + escapedPrefix)
+}
+Cache.TiStorage.prototype.get = function(key) {
+  var item = Ti.App.Properties.getString(this.prefix_ + key, null);
+  if (item) return JSON.parse(item);
+  return null;
+}
+Cache.TiStorage.prototype.set = function(key, value) {
+  Ti.App.Properties.setString(this.prefix_ + key, JSON.stringify(value));
+}
+Cache.TiStorage.prototype.size = function(key, value) {
+  return this.keys().length;
+}
+Cache.TiStorage.prototype.remove = function(key) {
+  var item = this.get(key);
+  Ti.App.Properties.removeProperty(this.prefix_ + key);
+  return item;
+}
+Cache.TiStorage.prototype.keys = function() {
+  var ret = [], p;
+  for (p in Ti.App.Properties.listProperties()) {
+    if (p.match(this.regexp_)) ret.push(p.replace(this.prefix_, ''));
+  };
+  return ret;
+}
+
+
 /**
  * Retrieves an item from the cache.
  * @param {string} key The key to retrieve.
